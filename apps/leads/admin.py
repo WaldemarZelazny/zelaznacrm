@@ -12,7 +12,8 @@ from .models import Lead, WorkflowStage
 class WorkflowStageAdmin(admin.ModelAdmin):
     """Panel administracyjny etapów lejka sprzedażowego."""
 
-    list_display = ("order", "name", "color", "is_active")
+    list_display = ("name", "order", "color", "is_active")
+    list_display_links = ("name",)
     list_editable = ("order", "color", "is_active")
     ordering = ("order",)
     search_fields = ("name",)
