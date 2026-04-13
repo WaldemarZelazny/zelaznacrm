@@ -1,0 +1,11 @@
+# ZelaznaCRM – zależności bazowe (wszystkie środowiska)
+# Uwaga: pinned do Django 6.x – jedyna wersja kompatybilna z Python 3.14+
+Django>=6.0
+psycopg2-binary>=2.9.9
+django-environ>=0.11.2
+Pillow>=10.3.0
+weasyprint>=62.3
+django-crispy-forms>=2.1
+crispy-bootstrap5>=2024.2
+django-filter>=24.1
+django-guardian>=2.4.0
