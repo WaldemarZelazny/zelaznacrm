@@ -1,0 +1,68 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Usuń: {{ company.name }}{% endblock %}
+{% block page_title %}Usuń firmę{% endblock %}
+{% block nav_companies %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3 row justify-content-center">
+  <div class="col-lg-6">
+
+    <div class="card border-danger shadow-sm">
+      <div class="card-header bg-danger-lt">
+        <h3 class="card-title text-danger">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="20" height="20"
+               viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M12 9v4"/>
+            <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/>
+            <path d="M12 16h.01"/>
+          </svg>
+          Potwierdź usunięcie
+        </h3>
+      </div>
+      <div class="card-body">
+        <p class="mb-1">
+          Czy na pewno chcesz usunąć firmę
+          <strong>{{ company.name }}</strong>?
+        </p>
+        <p class="text-danger small">
+          Ta operacja jest nieodwracalna. Usunięcie firmy spowoduje również
+          usunięcie wszystkich powiązanych leadów, umów i kontaktów (CASCADE).
+        </p>
+
+        {% if company.contacts.count or company.leads.count or company.deals.count %}
+        <div class="alert alert-warning mb-3">
+          <strong>Powiązane rekordy do usunięcia:</strong>
+          <ul class="mb-0 mt-1">
+            {% if company.contacts.count %}
+            <li>Kontakty: {{ company.contacts.count }}</li>
+            {% endif %}
+            {% if company.leads.count %}
+            <li>Leady: {{ company.leads.count }}</li>
+            {% endif %}
+            {% if company.deals.count %}
+            <li>Umowy: {{ company.deals.count }}</li>
+            {% endif %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2 mt-3">
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+              Tak, usuń firmę
+            </button>
+          </form>
+          <a href="{% url 'companies:detail' company.pk %}"
+             class="btn btn-outline-secondary">
+            Anuluj
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
