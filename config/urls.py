@@ -12,11 +12,17 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from apps.accounts.views import LandingView
+
 urlpatterns = [
     # Panel administracyjny Django
     path("admin/", admin.site.urls),
-    # Strona główna (landing page) + logowanie
-    path("", include("apps.accounts.urls", namespace="accounts")),
+    # Strona główna – landing page
+    path("", LandingView.as_view(), name="landing"),
+    # Uwierzytelnianie
+    path("accounts/", include("apps.accounts.urls", namespace="accounts")),
+    # Dashboard – strona główna po zalogowaniu
+    path("dashboard/", include("apps.dashboard.urls", namespace="dashboard")),
     # Moduły CRM
     path("companies/", include("apps.companies.urls", namespace="companies")),
     path("contacts/", include("apps.contacts.urls", namespace="contacts")),
@@ -31,7 +37,6 @@ urlpatterns = [
 # W trybie deweloperskim serwuj pliki media przez Django
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    # django-debug-toolbar
     import debug_toolbar  # noqa: E402
 
     urlpatterns = [

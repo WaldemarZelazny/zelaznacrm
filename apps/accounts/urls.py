@@ -1,9 +1,15 @@
-"""URL routing dla aplikacji: accounts."""
+"""URL routing dla aplikacji accounts."""
 
 from __future__ import annotations
 
+from django.urls import path
+
+from . import views
+
 app_name = "accounts"
 
-urlpatterns: list = [
-    # Widoki będą dodane w Fazie 4.
+urlpatterns = [
+    path("login/", views.LoginView.as_view(), name="login"),
+    path("logout/", views.LogoutView.as_view(), name="logout"),
+    path("profile/", views.ProfileView.as_view(), name="profile"),
 ]

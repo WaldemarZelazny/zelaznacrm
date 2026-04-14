@@ -1,9 +1,13 @@
-"""URL routing dla aplikacji: companies."""
+"""URL routing dla aplikacji companies."""
 
 from __future__ import annotations
 
+from django.urls import path
+
+from . import views
+
 app_name = "companies"
 
-urlpatterns: list = [
-    # Widoki będą dodane w Fazie 4.
+urlpatterns = [
+    path("", views.CompaniesListView.as_view(), name="list"),
 ]

@@ -1,0 +1,261 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+  <meta name="description" content="ZelaznaCRM – nowoczesny system CRM dla Twojego zespołu sprzedaży."/>
+  <title>ZelaznaCRM — Twój CRM do zarządzania sprzedażą</title>
+
+  <!-- Tabler CSS -->
+  <link rel="stylesheet" href="{% static 'tabler/css/tabler.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}"/>
+</head>
+
+<body class="antialiased d-flex flex-column min-vh-100">
+
+  <!-- ================================================================
+       NAVBAR
+       ================================================================ -->
+  <header class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold fs-4 text-primary" href="{% url 'landing' %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler me-2"
+             width="28" height="28" viewBox="0 0 24 24"
+             stroke-width="1.5" stroke="currentColor" fill="none"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14z"/>
+          <path d="M9 12l2 2l4 -4"/>
+        </svg>
+        ZelaznaCRM
+      </a>
+      <div class="ms-auto">
+        <a href="{% url 'accounts:login' %}" class="btn btn-primary">
+          Zaloguj się
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================================================================
+       HERO SECTION
+       ================================================================ -->
+  <section class="py-5 py-lg-7 bg-primary-lt">
+    <div class="container text-center">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <h1 class="display-4 fw-bold text-primary mb-3">
+            Zarządzaj sprzedażą<br/>z jednego miejsca
+          </h1>
+          <p class="lead text-muted mb-5">
+            ZelaznaCRM to profesjonalne narzędzie CRM dla zespołów sprzedaży.
+            Kontroluj leady, umowy, kontakty i zadania — wszystko w jednym panelu.
+          </p>
+          <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-lg px-5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="20" height="20"
+                   viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
+                <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>
+              </svg>
+              Zaloguj się do systemu
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       MODUŁY – 6 kart funkcjonalności
+       ================================================================ -->
+  <section class="py-5 py-lg-7">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2 class="h1 fw-bold">Wszystko czego potrzebujesz</h2>
+        <p class="text-muted lead">Kompletny zestaw narzędzi dla handlowców i menedżerów.</p>
+      </div>
+
+      <div class="row g-4">
+
+        <!-- Firmy -->
+        <div class="col-sm-6 col-lg-4">
+          <div class="card card-sm h-100 shadow-sm hover-shadow">
+            <div class="card-body">
+              <div class="mb-3">
+                <span class="avatar avatar-md bg-blue-lt text-blue">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M3 21l18 0"/>
+                    <path d="M9 8l1 0"/>
+                    <path d="M9 12l1 0"/>
+                    <path d="M9 16l1 0"/>
+                    <path d="M14 8l1 0"/>
+                    <path d="M14 12l1 0"/>
+                    <path d="M14 16l1 0"/>
+                    <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16"/>
+                  </svg>
+                </span>
+              </div>
+              <h3 class="card-title">Firmy</h3>
+              <p class="text-muted small">
+                Zarządzaj bazą klientów — NIP, adresy, branże, opiekunowie klientów.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kontakty -->
+        <div class="col-sm-6 col-lg-4">
+          <div class="card card-sm h-100 shadow-sm hover-shadow">
+            <div class="card-body">
+              <div class="mb-3">
+                <span class="avatar avatar-md bg-green-lt text-green">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <circle cx="12" cy="7" r="4"/>
+                    <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                  </svg>
+                </span>
+              </div>
+              <h3 class="card-title">Kontakty</h3>
+              <p class="text-muted small">
+                Baza osób kontaktowych z powiązaniami do firm, stanowiskami i danymi kontaktowymi.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leady -->
+        <div class="col-sm-6 col-lg-4">
+          <div class="card card-sm h-100 shadow-sm hover-shadow">
+            <div class="card-body">
+              <div class="mb-3">
+                <span class="avatar avatar-md bg-orange-lt text-orange">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M3 17l6 -6l4 4l8 -9"/>
+                    <path d="M14 7l7 0l0 7"/>
+                  </svg>
+                </span>
+              </div>
+              <h3 class="card-title">Leady i lejek</h3>
+              <p class="text-muted small">
+                Widok Kanban lejka sprzedażowego. Śledź postępy od pierwszego kontaktu do wygranej.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Umowy -->
+        <div class="col-sm-6 col-lg-4">
+          <div class="card card-sm h-100 shadow-sm hover-shadow">
+            <div class="card-body">
+              <div class="mb-3">
+                <span class="avatar avatar-md bg-purple-lt text-purple">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                    <line x1="9" y1="9" x2="10" y2="9"/>
+                    <line x1="9" y1="13" x2="15" y2="13"/>
+                    <line x1="9" y1="17" x2="15" y2="17"/>
+                  </svg>
+                </span>
+              </div>
+              <h3 class="card-title">Umowy</h3>
+              <p class="text-muted small">
+                Zarządzaj umowami i transakcjami. Generuj oferty PDF i śledź terminy.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zadania -->
+        <div class="col-sm-6 col-lg-4">
+          <div class="card card-sm h-100 shadow-sm hover-shadow">
+            <div class="card-body">
+              <div class="mb-3">
+                <span class="avatar avatar-md bg-red-lt text-red">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <rect x="4" y="5" width="16" height="16" rx="2"/>
+                    <line x1="16" y1="3" x2="16" y2="7"/>
+                    <line x1="8" y1="3" x2="8" y2="7"/>
+                    <line x1="4" y1="11" x2="20" y2="11"/>
+                    <line x1="11" y1="15" x2="12" y2="15"/>
+                    <line x1="12" y1="15" x2="12" y2="18"/>
+                  </svg>
+                </span>
+              </div>
+              <h3 class="card-title">Zadania</h3>
+              <p class="text-muted small">
+                Planuj aktywności, spotkania i follow-upy. Nigdy nie przegap ważnego terminu.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raporty -->
+        <div class="col-sm-6 col-lg-4">
+          <div class="card card-sm h-100 shadow-sm hover-shadow">
+            <div class="card-body">
+              <div class="mb-3">
+                <span class="avatar avatar-md bg-cyan-lt text-cyan">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <rect x="3" y="12" width="6" height="8" rx="1"/>
+                    <rect x="9" y="8" width="6" height="12" rx="1"/>
+                    <rect x="15" y="4" width="6" height="16" rx="1"/>
+                    <line x1="4" y1="20" x2="18" y2="20"/>
+                  </svg>
+                </span>
+              </div>
+              <h3 class="card-title">Raporty i logi</h3>
+              <p class="text-muted small">
+                Pełna historia aktywności zespołu. Analizuj wyniki i monitoruj postępy.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.row -->
+    </div><!-- /.container -->
+  </section>
+
+  <!-- ================================================================
+       CTA – wezwanie do działania
+       ================================================================ -->
+  <section class="py-5 bg-primary text-white mt-auto">
+    <div class="container text-center">
+      <h2 class="h1 fw-bold mb-3">Gotowy do pracy?</h2>
+      <p class="lead mb-4 opacity-75">
+        Zaloguj się i zacznij zarządzać swoją sprzedażą już dziś.
+      </p>
+      <a href="{% url 'accounts:login' %}" class="btn btn-light btn-lg px-5 fw-semibold">
+        Zaloguj się →
+      </a>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       STOPKA
+       ================================================================ -->
+  <footer class="py-4 bg-dark text-muted">
+    <div class="container text-center small">
+      ZelaznaCRM &copy; {% now "Y" %} — Projekt dyplomowy
+    </div>
+  </footer>
+
+  <!-- Tabler JS -->
+  <script src="{% static 'tabler/js/tabler.min.js' %}"></script>
+</body>
+</html>

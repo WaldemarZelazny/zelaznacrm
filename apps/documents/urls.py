@@ -1,9 +1,13 @@
-"""URL routing dla aplikacji: documents."""
+"""URL routing dla aplikacji documents."""
 
 from __future__ import annotations
 
+from django.urls import path
+
+from . import views
+
 app_name = "documents"
 
-urlpatterns: list = [
-    # Widoki będą dodane w Fazie 4.
+urlpatterns = [
+    path("", views.DocumentsListView.as_view(), name="list"),
 ]

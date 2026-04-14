@@ -1,9 +1,13 @@
-"""URL routing dla aplikacji: tasks."""
+"""URL routing dla aplikacji tasks."""
 
 from __future__ import annotations
 
+from django.urls import path
+
+from . import views
+
 app_name = "tasks"
 
-urlpatterns: list = [
-    # Widoki będą dodane w Fazie 4.
+urlpatterns = [
+    path("", views.TasksListView.as_view(), name="list"),
 ]

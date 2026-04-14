@@ -54,6 +54,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "apps.accounts",
+    "apps.dashboard",
     "apps.companies",
     "apps.contacts",
     "apps.leads",
@@ -163,8 +164,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Uwierzytelnianie
 # ---------------------------------------------------------------------------
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "/dashboard/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 # django-guardian: wymagany backend
 AUTHENTICATION_BACKENDS = [
