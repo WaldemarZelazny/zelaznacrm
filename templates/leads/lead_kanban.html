@@ -1,0 +1,122 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Kanban – Leady{% endblock %}
+{% block page_title %}Lejek sprzedażowy – Kanban{% endblock %}
+{% block nav_leads %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+  .kanban-board { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; }
+  .kanban-col { flex: 0 0 270px; min-width: 270px; }
+  .kanban-col-header {
+    border-top: 3px solid var(--stage-color, #6c757d);
+    border-radius: 4px 4px 0 0;
+    padding: 0.5rem 0.75rem;
+    background: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .kanban-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
+    transition: box-shadow 0.15s;
+  }
+  .kanban-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+  .kanban-cards { background: #f1f3f5; border-radius: 0 0 4px 4px; padding: 0.5rem; min-height: 80px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Nagłówek + przyciski -->
+  <div class="d-flex align-items-center mb-3">
+    <div class="me-auto">
+      <p class="text-muted mb-0">
+        {% if is_admin %}Wszystkie otwarte leady{% else %}Twoje otwarte leady{% endif %}
+        pogrupowane wg etapu
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'leads:list' %}" class="btn btn-outline-secondary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Lista
+      </a>
+      <a href="{% url 'leads:create' %}" class="btn btn-primary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Dodaj lead
+      </a>
+    </div>
+  </div>
+
+  <!-- Tablica Kanban -->
+  <div class="kanban-board">
+    {% for col in kanban_columns %}
+    <div class="kanban-col">
+
+      <!-- Nagłówek kolumny z kolorem etapu -->
+      <div class="kanban-col-header" style="--stage-color: {{ col.stage.color }}">
+        <span style="color: {{ col.stage.color }}">{{ col.stage.name }}</span>
+        <span class="badge ms-1" style="background: {{ col.stage.color }}20; color: {{ col.stage.color }}">
+          {{ col.leads|length }}
+        </span>
+        {% if col.leads %}
+        <div class="text-muted fw-normal small mt-1">
+          {{ col.total_value|floatformat:0 }} PLN
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Karty leadów -->
+      <div class="kanban-cards">
+        {% for lead in col.leads %}
+        <div class="kanban-card">
+          <a href="{% url 'leads:detail' lead.pk %}"
+             class="fw-semibold text-dark d-block mb-1 text-decoration-none"
+             style="font-size: 0.875rem;">
+            {{ lead.title }}
+          </a>
+          <div class="text-muted small">
+            <a href="{% url 'companies:detail' lead.company.pk %}"
+               class="text-muted text-decoration-none">
+              {{ lead.company.name }}
+            </a>
+          </div>
+          {% if lead.contact %}
+          <div class="text-muted small">{{ lead.contact.full_name }}</div>
+          {% endif %}
+          <div class="d-flex justify-content-between align-items-center mt-2">
+            <span class="fw-semibold" style="font-size: 0.8rem; color: {{ col.stage.color }}">
+              {{ lead.value_display }}
+            </span>
+            {% if lead.owner %}
+            <span class="avatar avatar-xs bg-primary-lt text-primary"
+                  title="{{ lead.owner.get_full_name|default:lead.owner.username }}">
+              {{ lead.owner.first_name|first|upper }}{{ lead.owner.last_name|first|upper }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted small py-3">Brak leadów</div>
+        {% endfor %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
