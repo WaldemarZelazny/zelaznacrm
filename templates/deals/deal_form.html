@@ -1,0 +1,37 @@
+{% extends "base_dashboard.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_title %}{{ form_title }}{% endblock %}
+{% block nav_deals %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+
+      <!-- Breadcrumb -->
+      <div class="mb-3">
+        <a href="{% url 'deals:list' %}" class="text-muted small">← Lista umów</a>
+        {% if object %}
+        <span class="text-muted small"> / </span>
+        <a href="{% url 'deals:detail' object.pk %}" class="text-muted small">
+          {{ object.title }}
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h3 class="card-title">{{ form_title }}</h3>
+        </div>
+        <div class="card-body">
+          <h4 class="text-muted small text-uppercase fw-bold mb-3">Dane umowy</h4>
+          {% crispy form %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

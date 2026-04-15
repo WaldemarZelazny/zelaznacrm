@@ -1,0 +1,213 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ deal.title }}{% endblock %}
+{% block page_title %}{{ deal.title }}{% endblock %}
+{% block nav_deals %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Przyciski akcji -->
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="{% url 'deals:list' %}" class="btn btn-outline-secondary btn-sm">
+      ← Lista umów
+    </a>
+    {% if can_edit and deal.status == "AKTYWNA" %}
+    <a href="{% url 'deals:update' deal.pk %}" class="btn btn-primary btn-sm">
+      Edytuj umowę
+    </a>
+    <!-- Zatwierdź jako zrealizowaną -->
+    <form method="post" action="{% url 'deals:complete' deal.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success btn-sm">
+        Zrealizowana ✓
+      </button>
+    </form>
+    <!-- Anuluj umowę -->
+    <form method="post" action="{% url 'deals:cancel' deal.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-danger btn-sm"
+              onclick="return confirm('Czy na pewno anulować tę umowę?')">
+        Anuluj umowę
+      </button>
+    </form>
+    {% endif %}
+    {% if is_admin %}
+    <a href="{% url 'deals:delete' deal.pk %}"
+       class="btn btn-outline-danger btn-sm ms-auto">
+      Usuń umowę
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+
+    <!-- Karta: Dane umowy -->
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">Dane umowy</h3>
+          <div class="ms-2">
+            {% if deal.status == "AKTYWNA" %}
+            <span class="badge bg-blue-lt text-blue">Aktywna</span>
+            {% elif deal.status == "ZREALIZOWANA" %}
+            <span class="badge bg-success-lt text-success">Zrealizowana</span>
+            {% else %}
+            <span class="badge bg-secondary-lt text-muted">Anulowana</span>
+            {% endif %}
+            {% if deal.is_overdue %}
+            <span class="badge bg-danger-lt text-danger ms-1">Po terminie</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-5 text-muted fw-normal small">Firma</dt>
+            <dd class="col-7">
+              <a href="{% url 'companies:detail' deal.company.pk %}">
+                {{ deal.company.name }}
+              </a>
+            </dd>
+
+            {% if deal.lead %}
+            <dt class="col-5 text-muted fw-normal small">Lead źródłowy</dt>
+            <dd class="col-7">
+              <a href="{% url 'leads:detail' deal.lead.pk %}">
+                {{ deal.lead.title }}
+              </a>
+            </dd>
+            {% endif %}
+
+            <dt class="col-5 text-muted fw-normal small">Wartość</dt>
+            <dd class="col-7 fw-semibold">{{ deal.value_display }}</dd>
+
+            <dt class="col-5 text-muted fw-normal small">Termin realizacji</dt>
+            <dd class="col-7">{{ deal.close_date|date:"d.m.Y" }}</dd>
+
+            {% if deal.signed_at %}
+            <dt class="col-5 text-muted fw-normal small">Data podpisania</dt>
+            <dd class="col-7">{{ deal.signed_at|date:"d.m.Y" }}</dd>
+            {% endif %}
+
+            <dt class="col-5 text-muted fw-normal small">Opiekun</dt>
+            <dd class="col-7">
+              {{ deal.owner.get_full_name|default:deal.owner.username|default:"—" }}
+            </dd>
+
+            <dt class="col-5 text-muted fw-normal small">Dodano</dt>
+            <dd class="col-7">{{ deal.created_at|date:"d.m.Y H:i" }}</dd>
+
+            <dt class="col-5 text-muted fw-normal small">Zaktualizowano</dt>
+            <dd class="col-7">{{ deal.updated_at|date:"d.m.Y H:i" }}</dd>
+          </dl>
+
+          {% if deal.description %}
+          <hr/>
+          <p class="text-muted small mb-1">Opis / warunki</p>
+          <p class="mb-0">{{ deal.description|linebreaksbr }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Zakładki: Zadania / Notatki / Dokumenty -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header">
+          <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
+            <li class="nav-item">
+              <a href="#tab-tasks" class="nav-link active" data-bs-toggle="tab">
+                Zadania
+                <span class="badge bg-red-lt text-red ms-1">{{ deal.tasks.count }}</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#tab-notes" class="nav-link" data-bs-toggle="tab">
+                Notatki
+                <span class="badge bg-secondary ms-1">{{ deal.notes.count }}</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#tab-documents" class="nav-link" data-bs-toggle="tab">
+                Dokumenty
+                <span class="badge bg-secondary ms-1">{{ deal.documents.count }}</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card-body tab-content p-0">
+
+          <!-- Zadania -->
+          <div class="tab-pane active show" id="tab-tasks">
+            {% if deal.tasks.all %}
+            <table class="table table-sm table-hover mb-0">
+              <thead>
+                <tr><th>Zadanie</th><th>Typ</th><th>Termin</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {% for task in deal.tasks.all %}
+                <tr>
+                  <td><a href="{% url 'tasks:detail' task.pk %}">{{ task.title }}</a></td>
+                  <td class="text-muted small">{{ task.get_task_type_display }}</td>
+                  <td class="text-muted small">{{ task.due_date|date:"d.m.Y" }}</td>
+                  <td class="text-muted small">{{ task.get_status_display }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center text-muted py-4">Brak zadań.</div>
+            {% endif %}
+          </div>
+
+          <!-- Notatki -->
+          <div class="tab-pane" id="tab-notes">
+            {% if deal.notes.all %}
+            <div class="list-group list-group-flush">
+              {% for note in deal.notes.all %}
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between mb-1">
+                  <small class="text-muted">
+                    {{ note.author.get_full_name|default:note.author.username|default:"System" }}
+                  </small>
+                  <small class="text-muted">{{ note.created_at|date:"d.m.Y H:i" }}</small>
+                </div>
+                <p class="mb-0 small">{{ note.short_content }}</p>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4">Brak notatek.</div>
+            {% endif %}
+          </div>
+
+          <!-- Dokumenty -->
+          <div class="tab-pane" id="tab-documents">
+            {% if deal.documents.all %}
+            <table class="table table-sm table-hover mb-0">
+              <thead>
+                <tr><th>Tytuł</th><th>Typ</th><th>Data</th></tr>
+              </thead>
+              <tbody>
+                {% for doc in deal.documents.all %}
+                <tr>
+                  <td><a href="{% url 'documents:detail' doc.pk %}">{{ doc.title }}</a></td>
+                  <td class="text-muted small">{{ doc.get_doc_type_display }}</td>
+                  <td class="text-muted small">{{ doc.created_at|date:"d.m.Y" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center text-muted py-4">Brak dokumentów.</div>
+            {% endif %}
+          </div>
+
+        </div><!-- /.tab-content -->
+      </div>
+    </div>
+
+  </div><!-- /.row -->
+</div>
+{% endblock %}
