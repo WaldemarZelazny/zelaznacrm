@@ -1,0 +1,142 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+  <title>Logowanie — ZelaznaCRM</title>
+  <link rel="stylesheet" href="{% static 'tabler/css/tabler.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}"/>
+</head>
+
+<body class="antialiased">
+<div class="page page-center">
+  <div class="container container-tight py-4">
+
+    <!-- Logo -->
+    <div class="text-center mb-4">
+      <a href="{% url 'landing' %}" class="navbar-brand navbar-brand-autodark">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler text-primary"
+             width="48" height="48" viewBox="0 0 24 24"
+             stroke-width="1.5" stroke="currentColor" fill="none"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14z"/>
+          <path d="M9 12l2 2l4 -4"/>
+        </svg>
+        <span class="fs-3 fw-bold text-primary ms-2">ZelaznaCRM</span>
+      </a>
+    </div>
+
+    <!-- Karta logowania -->
+    <div class="card card-md shadow-sm">
+      <div class="card-body">
+        <h2 class="h2 text-center mb-4">Zaloguj się do systemu</h2>
+
+        <!-- Komunikaty Django messages -->
+        {% if messages %}
+          {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible mb-3"
+               role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                    aria-label="Zamknij"></button>
+          </div>
+          {% endfor %}
+        {% endif %}
+
+        <!-- Błędy non-field (nieprawidłowe dane logowania) -->
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-3" role="alert">
+          {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'accounts:login' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" autocomplete="off" novalidate>
+          {% csrf_token %}
+
+          <!-- Login -->
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.username.id_for_label }}">
+              Login
+            </label>
+            <input
+              type="text"
+              id="{{ form.username.id_for_label }}"
+              name="username"
+              value="{{ form.username.value|default:'' }}"
+              class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+              placeholder="Nazwa użytkownika"
+              autocomplete="username"
+              autofocus
+            />
+            {% for error in form.username.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <!-- Hasło -->
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.password.id_for_label }}">
+              Hasło
+            </label>
+            <div class="input-group input-group-flat">
+              <input
+                type="password"
+                id="{{ form.password.id_for_label }}"
+                name="password"
+                class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                placeholder="Hasło"
+                autocomplete="current-password"
+              />
+              <span class="input-group-text">
+                <a href="#" class="link-secondary" title="Pokaż/ukryj hasło"
+                   data-bs-toggle="tooltip"
+                   onclick="
+                     var inp = document.getElementById('{{ form.password.id_for_label }}');
+                     inp.type = inp.type === 'password' ? 'text' : 'password';
+                     return false;
+                   ">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <path d="M22 12c-2.667 4.667 -6 7 -10 7s-7.333 -2.333 -10 -7c2.667 -4.667 6 -7 10 -7s7.333 2.333 10 7"/>
+                  </svg>
+                </a>
+              </span>
+            </div>
+            {% for error in form.password.errors %}
+            <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <!-- Przycisk -->
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary w-100">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="20" height="20"
+                   viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M9 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2"/>
+                <path d="M3 12h13l-3 -3m0 6l3 -3"/>
+              </svg>
+              Zaloguj się
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Powrót do strony głównej -->
+    <div class="text-center text-muted mt-3">
+      <a href="{% url 'landing' %}">← Wróć do strony głównej</a>
+    </div>
+
+  </div>
+</div>
+
+<script src="{% static 'tabler/js/tabler.min.js' %}"></script>
+</body>
+</html>

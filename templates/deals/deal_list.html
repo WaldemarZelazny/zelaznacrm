@@ -1,0 +1,183 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Umowy{% endblock %}
+{% block page_title %}Umowy{% endblock %}
+{% block nav_deals %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Nagłówek + suma aktywnych + przycisk dodaj -->
+  <div class="d-flex align-items-center mb-3">
+    <div class="me-auto">
+      <p class="text-muted mb-0">
+        Łącznie: <strong>{{ paginator.count }}</strong>
+        {% if is_admin %}umów{% else %}Twoich umów{% endif %}
+        &nbsp;|&nbsp;
+        Aktywne: <strong class="text-success">{{ active_total|floatformat:2 }} PLN</strong>
+      </p>
+    </div>
+    <a href="{% url 'deals:create' %}" class="btn btn-primary btn-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+           viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Dodaj umowę
+    </a>
+  </div>
+
+  <!-- Panel filtrów -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-sm-4">
+          <label class="form-label small text-muted mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="">Wszystkie statusy</option>
+            {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if filter_status == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-4">
+          <label class="form-label small text-muted mb-1">Firma</label>
+          <input type="text" name="company" value="{{ filter_company }}"
+                 class="form-control form-control-sm" placeholder="Nazwa firmy…"/>
+        </div>
+        <div class="col-sm-4 d-flex gap-2">
+          <button type="submit" class="btn btn-sm btn-primary flex-fill">Filtruj</button>
+          <a href="{% url 'deals:list' %}" class="btn btn-sm btn-outline-secondary">✕</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabela umów -->
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-vcenter table-hover card-table">
+        <thead>
+          <tr>
+            <th>Tytuł umowy</th>
+            <th>Firma</th>
+            <th>Status</th>
+            <th>Wartość</th>
+            <th>Termin realizacji</th>
+            <th>Opiekun</th>
+            <th class="w-1"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for deal in deals %}
+          <tr>
+            <td>
+              <a href="{% url 'deals:detail' deal.pk %}" class="fw-semibold text-dark">
+                {{ deal.title }}
+              </a>
+              {% if deal.lead %}
+              <div class="text-muted small">Lead: {{ deal.lead.title }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'companies:detail' deal.company.pk %}" class="text-muted small">
+                {{ deal.company.name }}
+              </a>
+            </td>
+            <td>
+              {% if deal.status == "AKTYWNA" %}
+              <span class="badge bg-blue-lt text-blue">Aktywna</span>
+              {% elif deal.status == "ZREALIZOWANA" %}
+              <span class="badge bg-success-lt text-success">Zrealizowana</span>
+              {% else %}
+              <span class="badge bg-secondary-lt text-muted">Anulowana</span>
+              {% endif %}
+            </td>
+            <td class="text-end fw-semibold">{{ deal.value_display }}</td>
+            <td class="text-muted small">
+              {{ deal.close_date|date:"d.m.Y" }}
+              {% if deal.is_overdue %}
+              <span class="badge bg-danger-lt text-danger ms-1">Po terminie</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">
+              {{ deal.owner.get_full_name|default:deal.owner.username|default:"—" }}
+            </td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-ghost-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/>
+                    <circle cx="12" cy="19" r="1"/>
+                  </svg>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                  <a class="dropdown-item" href="{% url 'deals:detail' deal.pk %}">Szczegóły</a>
+                  <a class="dropdown-item" href="{% url 'deals:update' deal.pk %}">Edytuj</a>
+                  {% if is_admin %}
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item text-danger"
+                     href="{% url 'deals:delete' deal.pk %}">Usuń</a>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+              Brak umów spełniających kryteria.
+              <a href="{% url 'deals:create' %}">Dodaj pierwszą umowę →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginacja -->
+    {% if is_paginated %}
+    <div class="card-footer d-flex align-items-center">
+      <p class="m-0 text-muted small">
+        Strona {{ page_obj.number }} z {{ paginator.num_pages }}
+      </p>
+      <ul class="pagination m-0 ms-auto">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_company %}&company={{ filter_company }}{% endif %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </a>
+        </li>
+        {% endif %}
+        {% for num in paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_company %}&company={{ filter_company }}{% endif %}">{{ num }}</a>
+          </li>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_company %}&company={{ filter_company }}{% endif %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+  </div><!-- /.card -->
+</div>
+{% endblock %}

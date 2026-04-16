@@ -1,0 +1,111 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Kalendarz zadań{% endblock %}
+{% block page_title %}Kalendarz zadań{% endblock %}
+{% block nav_tasks %}active{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Nagłówek -->
+  <div class="d-flex align-items-center mb-3">
+    <div class="me-auto">
+      <p class="text-muted mb-0">Widok kalendarza — kliknij zadanie, aby przejść do szczegółów.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'tasks:list' %}" class="btn btn-outline-secondary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Lista
+      </a>
+      <a href="{% url 'tasks:create' %}" class="btn btn-primary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Dodaj zadanie
+      </a>
+    </div>
+  </div>
+
+  <!-- Legenda priorytetów -->
+  <div class="d-flex gap-3 mb-3 flex-wrap">
+    <span class="d-flex align-items-center gap-1">
+      <span class="d-inline-block rounded" style="width:12px;height:12px;background:#dc3545"></span>
+      <small class="text-muted">Pilny</small>
+    </span>
+    <span class="d-flex align-items-center gap-1">
+      <span class="d-inline-block rounded" style="width:12px;height:12px;background:#fd7e14"></span>
+      <small class="text-muted">Wysoki</small>
+    </span>
+    <span class="d-flex align-items-center gap-1">
+      <span class="d-inline-block rounded" style="width:12px;height:12px;background:#0d6efd"></span>
+      <small class="text-muted">Średni</small>
+    </span>
+    <span class="d-flex align-items-center gap-1">
+      <span class="d-inline-block rounded" style="width:12px;height:12px;background:#6c757d"></span>
+      <small class="text-muted">Niski</small>
+    </span>
+  </div>
+
+  <!-- Kalendarz -->
+  <div class="card">
+    <div class="card-body">
+      <div id="calendar"></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var calendarEl = document.getElementById('calendar');
+  var calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    locale: 'pl',
+    height: 'auto',
+    firstDay: 1,
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,listWeek'
+    },
+    buttonText: {
+      today: 'Dziś',
+      month: 'Miesiąc',
+      week: 'Tydzień',
+      list: 'Lista'
+    },
+    events: '{% url "tasks:calendar" %}?format=json',
+    eventClick: function (info) {
+      info.jsEvent.preventDefault();
+      if (info.event.url) {
+        window.location.href = info.event.url;
+      }
+    },
+    eventDidMount: function (info) {
+      // Tooltip z dodatkowymi informacjami
+      var props = info.event.extendedProps;
+      info.el.setAttribute('title',
+        'Status: ' + props.status + '\nPriorytet: ' + props.priority
+      );
+    }
+  });
+  calendar.render();
+});
+</script>
+{% endblock %}

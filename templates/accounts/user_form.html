@@ -1,0 +1,42 @@
+{% extends "base_dashboard.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_title %}{{ form_title }}{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      <div class="mb-3">
+        {% if is_admin %}
+        <a href="{% url 'accounts:user_list' %}" class="text-muted small">
+          &larr; Lista uzytkownikow
+        </a>
+        {% else %}
+        <a href="{% url 'accounts:profile' %}" class="text-muted small">
+          &larr; Moj profil
+        </a>
+        {% endif %}
+        {% if object %}
+        <span class="text-muted small"> / </span>
+        <a href="{% url 'accounts:user_detail' object.pk %}" class="text-muted small">
+          {{ object.username }}
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h3 class="card-title">{{ form_title }}</h3>
+        </div>
+        <div class="card-body">
+          {% crispy form %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

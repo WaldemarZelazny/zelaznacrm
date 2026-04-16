@@ -1,0 +1,77 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Raport sprzedazy{% endblock %}
+{% block page_title %}Raport sprzedazy{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="{% url 'reports:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      &larr; Raporty
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Wyniki handlowcow</h3>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-vcenter table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Handlowiec</th>
+              <th class="text-end">Leady</th>
+              <th class="text-end">Wygrane</th>
+              <th class="text-end">Konwersja</th>
+              <th class="text-end">Umowy</th>
+              <th class="text-end">Wartosc umow (PLN)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td>
+                <div class="fw-semibold">
+                  {% if row.user %}
+                  {{ row.user.get_full_name|default:row.user.username }}
+                  {% else %}
+                  &mdash;
+                  {% endif %}
+                </div>
+                {% if row.user %}
+                <div class="text-muted small">{{ row.user.username }}</div>
+                {% endif %}
+              </td>
+              <td class="text-end">{{ row.leads_total }}</td>
+              <td class="text-end text-success fw-semibold">{{ row.leads_won }}</td>
+              <td class="text-end">
+                <span class="badge
+                  {% if row.conversion >= 50 %}bg-success-lt text-success
+                  {% elif row.conversion >= 25 %}bg-warning-lt text-warning
+                  {% else %}bg-secondary-lt text-secondary{% endif %}">
+                  {{ row.conversion }}%
+                </span>
+              </td>
+              <td class="text-end">{{ row.deals_total }}</td>
+              <td class="text-end fw-semibold">
+                {{ row.deals_value|floatformat:2 }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">
+                Brak handlowcow w systemie.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

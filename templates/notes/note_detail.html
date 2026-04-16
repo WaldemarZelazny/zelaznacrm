@@ -1,0 +1,123 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Notatka{% endblock %}
+{% block page_title %}Notatka{% endblock %}
+{% block nav_notes %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Przyciski akcji -->
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="{% url 'notes:list' %}" class="btn btn-outline-secondary btn-sm">
+      ← Lista notatek
+    </a>
+    {% if can_edit %}
+    <a href="{% url 'notes:update' note.pk %}" class="btn btn-primary btn-sm">
+      Edytuj notatkę
+    </a>
+    <a href="{% url 'notes:delete' note.pk %}"
+       class="btn btn-outline-danger btn-sm ms-auto">
+      Usuń notatkę
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+
+    <!-- Karta: Treść notatki -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">Treść notatki</h3>
+          <div class="ms-auto text-muted small">
+            {% if note.author %}
+            {{ note.author.get_full_name|default:note.author.username }}
+            {% else %}—{% endif %}
+            &nbsp;·&nbsp;
+            {{ note.created_at|date:"d.m.Y H:i" }}
+            {% if note.updated_at != note.created_at %}
+            &nbsp;<span class="badge bg-secondary-lt text-muted">edytowano</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="mb-0" style="white-space: pre-wrap;">{{ note.content }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Karta: Powiązane rekordy -->
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">Powiązane rekordy</h3>
+        </div>
+        <div class="card-body">
+
+          {% if note.company %}
+          <div class="mb-3">
+            <h4 class="text-muted small text-uppercase fw-bold mb-1">Firma</h4>
+            <a href="{% url 'companies:detail' note.company.pk %}" class="fw-semibold">
+              {{ note.company.name }}
+            </a>
+            <div class="mt-1">
+              <a href="{% url 'notes:create' %}?company_id={{ note.company.pk }}"
+                 class="btn btn-xs btn-outline-primary btn-sm">
+                + Nowa notatka dla firmy
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if note.contact %}
+          <div class="mb-3">
+            <h4 class="text-muted small text-uppercase fw-bold mb-1">Kontakt</h4>
+            <a href="{% url 'contacts:detail' note.contact.pk %}" class="fw-semibold">
+              {{ note.contact.first_name }} {{ note.contact.last_name }}
+            </a>
+            {% if note.contact.position %}
+            <div class="text-muted small">{{ note.contact.position }}</div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if note.lead %}
+          <div class="mb-3">
+            <h4 class="text-muted small text-uppercase fw-bold mb-1">Lead</h4>
+            <a href="{% url 'leads:detail' note.lead.pk %}" class="fw-semibold">
+              {{ note.lead.title }}
+            </a>
+            <div class="text-muted small">{{ note.lead.get_status_display }}</div>
+          </div>
+          {% endif %}
+
+          {% if note.deal %}
+          <div class="mb-3">
+            <h4 class="text-muted small text-uppercase fw-bold mb-1">Umowa</h4>
+            <a href="{% url 'deals:detail' note.deal.pk %}" class="fw-semibold">
+              {{ note.deal.title }}
+            </a>
+            <div class="text-muted small">{{ note.deal.value_display }}</div>
+          </div>
+          {% endif %}
+
+          {% if not note.company and not note.contact and not note.lead and not note.deal %}
+          <div class="text-center text-muted py-3">
+            <p>Notatka nie jest powiązana z żadnym rekordem CRM.</p>
+            {% if can_edit %}
+            <a href="{% url 'notes:update' note.pk %}"
+               class="btn btn-sm btn-outline-secondary">
+              Dodaj powiązanie
+            </a>
+            {% endif %}
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.row -->
+</div>
+{% endblock %}
