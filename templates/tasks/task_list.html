@@ -1,0 +1,230 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Zadania{% endblock %}
+{% block page_title %}Zadania{% endblock %}
+{% block nav_tasks %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Nagłówek + przyciski widoku -->
+  <div class="d-flex align-items-center mb-3">
+    <div class="me-auto">
+      <p class="text-muted mb-0">
+        Łącznie: <strong>{{ paginator.count }}</strong>
+        {% if is_admin %}zadań{% else %}Twoich zadań{% endif %}
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'tasks:calendar' %}" class="btn btn-outline-secondary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <rect x="4" y="5" width="16" height="16" rx="2"/>
+          <line x1="16" y1="3" x2="16" y2="7"/><line x1="8" y1="3" x2="8" y2="7"/>
+          <line x1="4" y1="11" x2="20" y2="11"/>
+        </svg>
+        Kalendarz
+      </a>
+      <a href="{% url 'tasks:create' %}" class="btn btn-primary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Dodaj zadanie
+      </a>
+    </div>
+  </div>
+
+  <!-- Panel filtrów -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-sm-3">
+          <label class="form-label small text-muted mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="">Wszystkie statusy</option>
+            {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if filter_status == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label small text-muted mb-1">Priorytet</label>
+          <select name="priority" class="form-select form-select-sm">
+            <option value="">Wszystkie priorytety</option>
+            {% for value, label in priority_choices %}
+            <option value="{{ value }}" {% if filter_priority == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label small text-muted mb-1">Typ</label>
+          <select name="task_type" class="form-select form-select-sm">
+            <option value="">Wszystkie typy</option>
+            {% for value, label in task_type_choices %}
+            <option value="{{ value }}" {% if filter_task_type == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-3 d-flex gap-2">
+          <button type="submit" class="btn btn-sm btn-primary flex-fill">Filtruj</button>
+          <a href="{% url 'tasks:list' %}" class="btn btn-sm btn-outline-secondary">✕</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabela zadań -->
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-vcenter table-hover card-table">
+        <thead>
+          <tr>
+            <th>Zadanie</th>
+            <th>Typ</th>
+            <th>Priorytet</th>
+            <th>Termin</th>
+            <th>Status</th>
+            <th>Powiązanie</th>
+            <th>Przypisane do</th>
+            <th class="w-1"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in tasks %}
+          <tr {% if task.is_overdue %}class="table-danger"{% endif %}>
+            <td>
+              <a href="{% url 'tasks:detail' task.pk %}" class="fw-semibold text-dark">
+                {{ task.title }}
+              </a>
+            </td>
+            <td class="text-muted small">{{ task.get_task_type_display }}</td>
+            <td>
+              {% if task.priority == "PILNY" %}
+              <span class="badge bg-danger">Pilny</span>
+              {% elif task.priority == "WYSOKI" %}
+              <span class="badge bg-orange-lt text-orange">Wysoki</span>
+              {% elif task.priority == "SREDNI" %}
+              <span class="badge bg-blue-lt text-blue">Średni</span>
+              {% else %}
+              <span class="badge bg-secondary-lt text-muted">Niski</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">
+              {{ task.due_date|date:"d.m.Y H:i" }}
+              {% if task.is_overdue %}
+              <span class="text-danger small ms-1">⚠</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if task.status == "WYKONANE" %}
+              <span class="badge bg-success-lt text-success">Wykonane</span>
+              {% elif task.status == "W_TOKU" %}
+              <span class="badge bg-blue-lt text-blue">W toku</span>
+              {% elif task.status == "ANULOWANE" %}
+              <span class="badge bg-secondary-lt text-muted">Anulowane</span>
+              {% else %}
+              <span class="badge bg-secondary-lt text-muted">Do zrobienia</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">
+              {% if task.lead %}
+              <a href="{% url 'leads:detail' task.lead.pk %}" class="text-muted">
+                Lead: {{ task.lead.title|truncatechars:20 }}
+              </a>
+              {% elif task.deal %}
+              <a href="{% url 'deals:detail' task.deal.pk %}" class="text-muted">
+                Umowa: {{ task.deal.title|truncatechars:20 }}
+              </a>
+              {% elif task.company %}
+              <a href="{% url 'companies:detail' task.company.pk %}" class="text-muted">
+                {{ task.company.name|truncatechars:20 }}
+              </a>
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-muted small">
+              {% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}—{% endif %}
+            </td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-ghost-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/>
+                    <circle cx="12" cy="19" r="1"/>
+                  </svg>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                  <a class="dropdown-item" href="{% url 'tasks:detail' task.pk %}">Szczegóły</a>
+                  <a class="dropdown-item" href="{% url 'tasks:update' task.pk %}">Edytuj</a>
+                  {% if is_admin %}
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item text-danger"
+                     href="{% url 'tasks:delete' task.pk %}">Usuń</a>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              Brak zadań spełniających kryteria.
+              <a href="{% url 'tasks:create' %}">Dodaj pierwsze zadanie →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginacja -->
+    {% if is_paginated %}
+    <div class="card-footer d-flex align-items-center">
+      <p class="m-0 text-muted small">
+        Strona {{ page_obj.number }} z {{ paginator.num_pages }}
+      </p>
+      <ul class="pagination m-0 ms-auto">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_priority %}&priority={{ filter_priority }}{% endif %}{% if filter_task_type %}&task_type={{ filter_task_type }}{% endif %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </a>
+        </li>
+        {% endif %}
+        {% for num in paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_priority %}&priority={{ filter_priority }}{% endif %}{% if filter_task_type %}&task_type={{ filter_task_type }}{% endif %}">{{ num }}</a>
+          </li>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_priority %}&priority={{ filter_priority }}{% endif %}{% if filter_task_type %}&task_type={{ filter_task_type }}{% endif %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+  </div><!-- /.card -->
+</div>
+{% endblock %}
