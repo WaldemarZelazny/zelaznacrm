@@ -1,0 +1,45 @@
+{% extends "base_dashboard.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_title %}{{ form_title }}{% endblock %}
+{% block nav_documents %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+
+      <!-- Breadcrumb -->
+      <div class="mb-3">
+        <a href="{% url 'documents:list' %}" class="text-muted small">← Lista dokumentów</a>
+        {% if object %}
+        <span class="text-muted small"> / </span>
+        <a href="{% url 'documents:detail' object.pk %}" class="text-muted small">
+          {{ object.title }}
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h3 class="card-title">{{ form_title }}</h3>
+        </div>
+        <div class="card-body">
+          {% if object and object.file %}
+          <div class="alert alert-info mb-3">
+            <strong>Aktualny plik:</strong>
+            {{ object.file_extension|upper|default:"plik" }} — {{ object.file_size_display }}
+            &nbsp;
+            <a href="{% url 'documents:download' object.pk %}" class="alert-link">Pobierz</a>
+            &nbsp;(zostaw pole „Plik" puste, aby zachować aktualny plik)
+          </div>
+          {% endif %}
+          {% crispy form %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
