@@ -1,0 +1,49 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Usuń dokument{% endblock %}
+{% block page_title %}Usuń dokument{% endblock %}
+{% block nav_documents %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+
+      <div class="card border-danger shadow-sm">
+        <div class="card-header bg-danger-lt">
+          <h3 class="card-title text-danger">Potwierdzenie usunięcia</h3>
+        </div>
+        <div class="card-body">
+          <p class="mb-3">
+            Czy na pewno chcesz usunąć dokument
+            <strong>{{ object.title }}</strong>?
+          </p>
+          <p class="text-muted small mb-1">
+            Typ: {{ object.get_doc_type_display }}
+            {% if object.file_extension %}
+            &nbsp;·&nbsp;{{ object.file_extension|upper }}
+            — {{ object.file_size_display }}
+            {% endif %}
+          </p>
+          <p class="text-muted small mb-3">
+            Plik zostanie usunięty z systemu i nie będzie można go odzyskać.
+          </p>
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-danger">
+                Tak, usuń dokument
+              </button>
+              <a href="{% url 'documents:detail' object.pk %}"
+                 class="btn btn-outline-secondary">
+                Anuluj
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

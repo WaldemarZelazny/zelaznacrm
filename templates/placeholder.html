@@ -1,0 +1,30 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ module_name|capfirst }}{% endblock %}
+{% block page_title %}{{ module_name|capfirst }}{% endblock %}
+
+{% block content %}
+<div class="container-xl py-5 text-center">
+  <div class="empty">
+    <div class="empty-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock"
+           width="48" height="48" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor"
+           fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <circle cx="12" cy="12" r="9"/>
+        <polyline points="12 7 12 12 15 15"/>
+      </svg>
+    </div>
+    <p class="empty-title">Moduł w budowie</p>
+    <p class="empty-subtitle text-muted">
+      Widoki dla modułu <strong>{{ module_name }}</strong> zostaną zaimplementowane
+      w kolejnych krokach Fazy 4.
+    </p>
+    <div class="empty-action">
+      <a href="{% url 'dashboard:index' %}" class="btn btn-primary">
+        ← Wróć do dashboardu
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

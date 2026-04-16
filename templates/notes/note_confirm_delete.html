@@ -1,0 +1,42 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Usuń notatkę{% endblock %}
+{% block page_title %}Usuń notatkę{% endblock %}
+{% block nav_notes %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+
+      <div class="card border-danger shadow-sm">
+        <div class="card-header bg-danger-lt">
+          <h3 class="card-title text-danger">Potwierdzenie usunięcia</h3>
+        </div>
+        <div class="card-body">
+          <p class="mb-2">Czy na pewno chcesz usunąć tę notatkę?</p>
+          <blockquote class="blockquote border-start border-3 ps-3 mb-3">
+            <p class="small text-muted mb-0">{{ object.short_content }}</p>
+          </blockquote>
+          <p class="text-muted small mb-3">
+            Operacja jest nieodwracalna.
+          </p>
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-danger">
+                Tak, usuń notatkę
+              </button>
+              <a href="{% url 'notes:detail' object.pk %}"
+                 class="btn btn-outline-secondary">
+                Anuluj
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

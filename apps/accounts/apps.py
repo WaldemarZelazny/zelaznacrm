@@ -11,3 +11,7 @@ class AccountsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.accounts"
     verbose_name = "Konta i użytkownicy"
+
+    def ready(self) -> None:
+        """Rejestruje sygnały aplikacji accounts po załadowaniu Django."""
+        import apps.accounts.signals  # noqa: F401

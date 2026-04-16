@@ -1,0 +1,190 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Firmy{% endblock %}
+{% block page_title %}Firmy{% endblock %}
+{% block nav_companies %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Nagłówek + przycisk dodaj -->
+  <div class="d-flex align-items-center mb-3">
+    <div class="me-auto">
+      <p class="text-muted mb-0">
+        Łącznie: <strong>{{ paginator.count }}</strong>
+        {% if is_admin %}firm{% else %}Twoich firm{% endif %}
+      </p>
+    </div>
+    <a href="{% url 'companies:create' %}" class="btn btn-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
+           viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Dodaj firmę
+    </a>
+  </div>
+
+  <!-- Panel filtrów -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-sm-4">
+          <label class="form-label small text-muted mb-1">Nazwa firmy</label>
+          <input type="text" name="name" value="{{ filter_name }}"
+                 class="form-control form-control-sm" placeholder="Szukaj po nazwie…"/>
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label small text-muted mb-1">Miasto</label>
+          <input type="text" name="city" value="{{ filter_city }}"
+                 class="form-control form-control-sm" placeholder="Miasto…"/>
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label small text-muted mb-1">Branża</label>
+          <select name="industry" class="form-select form-select-sm">
+            <option value="">Wszystkie branże</option>
+            {% for value, label in industry_choices %}
+            <option value="{{ value }}" {% if filter_industry == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-2 d-flex gap-2">
+          <button type="submit" class="btn btn-sm btn-primary flex-fill">Filtruj</button>
+          <a href="{% url 'companies:list' %}" class="btn btn-sm btn-outline-secondary">✕</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabela firm -->
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-vcenter table-hover card-table">
+        <thead>
+          <tr>
+            <th>Nazwa firmy</th>
+            <th>Branża</th>
+            <th>Miasto</th>
+            <th>Telefon</th>
+            <th>Opiekun</th>
+            <th>Status</th>
+            <th class="w-1"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for company in companies %}
+          <tr>
+            <td>
+              <a href="{% url 'companies:detail' company.pk %}" class="fw-semibold text-dark">
+                {{ company.name }}
+              </a>
+              {% if company.nip %}
+              <div class="text-muted small">NIP: {{ company.nip }}</div>
+              {% endif %}
+            </td>
+            <td class="text-muted">{{ company.get_industry_display }}</td>
+            <td class="text-muted">{{ company.city|default:"—" }}</td>
+            <td class="text-muted">{{ company.phone|default:"—" }}</td>
+            <td>
+              {% if company.owner %}
+              <span class="avatar avatar-xs me-1 bg-primary-lt text-primary">
+                {{ company.owner.first_name|first|upper }}{{ company.owner.last_name|first|upper }}
+              </span>
+              {{ company.owner.get_full_name|default:company.owner.username }}
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if company.is_active %}
+              <span class="badge bg-success-lt text-success">Aktywna</span>
+              {% else %}
+              <span class="badge bg-secondary-lt text-muted">Nieaktywna</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-ghost-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/>
+                    <circle cx="12" cy="19" r="1"/>
+                  </svg>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                  <a class="dropdown-item" href="{% url 'companies:detail' company.pk %}">
+                    Szczegóły
+                  </a>
+                  <a class="dropdown-item" href="{% url 'companies:update' company.pk %}">
+                    Edytuj
+                  </a>
+                  {% if is_admin %}
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item text-danger"
+                     href="{% url 'companies:delete' company.pk %}">
+                    Usuń
+                  </a>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+              Brak firm spełniających kryteria.
+              <a href="{% url 'companies:create' %}">Dodaj pierwszą firmę →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginacja -->
+    {% if is_paginated %}
+    <div class="card-footer d-flex align-items-center">
+      <p class="m-0 text-muted small">
+        Strona {{ page_obj.number }} z {{ paginator.num_pages }}
+      </p>
+      <ul class="pagination m-0 ms-auto">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_name %}&name={{ filter_name }}{% endif %}{% if filter_city %}&city={{ filter_city }}{% endif %}{% if filter_industry %}&industry={{ filter_industry }}{% endif %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </a>
+        </li>
+        {% endif %}
+        {% for num in paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% if filter_name %}&name={{ filter_name }}{% endif %}{% if filter_city %}&city={{ filter_city }}{% endif %}{% if filter_industry %}&industry={{ filter_industry }}{% endif %}">{{ num }}</a>
+          </li>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_name %}&name={{ filter_name }}{% endif %}{% if filter_city %}&city={{ filter_city }}{% endif %}{% if filter_industry %}&industry={{ filter_industry }}{% endif %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+  </div><!-- /.card -->
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+/* ZelaznaCRM – własne style nadpisujące Tabler */
+
+/* Sidebar – lekkie podświetlenie aktywnej pozycji */
+.navbar-vertical .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+/* Karty na landing page – efekt hover */
+.hover-shadow {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.hover-shadow:hover {
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-2px);
+}
+
+/* Tabele – wyrównanie pionowe komórek */
+.table-vcenter td,
+.table-vcenter th {
+  vertical-align: middle;
+}

@@ -1,0 +1,212 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Leady{% endblock %}
+{% block page_title %}Leady{% endblock %}
+{% block nav_leads %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Nagłówek + przyciski widoku -->
+  <div class="d-flex align-items-center mb-3">
+    <div class="me-auto">
+      <p class="text-muted mb-0">
+        Łącznie: <strong>{{ paginator.count }}</strong>
+        {% if is_admin %}leadów{% else %}Twoich leadów{% endif %}
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'leads:kanban' %}" class="btn btn-outline-secondary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <rect x="3" y="3" width="5" height="18"/><rect x="10" y="3" width="5" height="11"/>
+          <rect x="17" y="3" width="4" height="15"/>
+        </svg>
+        Kanban
+      </a>
+      <a href="{% url 'leads:create' %}" class="btn btn-primary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Dodaj lead
+      </a>
+    </div>
+  </div>
+
+  <!-- Panel filtrów -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-sm-3">
+          <label class="form-label small text-muted mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="">Wszystkie statusy</option>
+            {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if filter_status == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label small text-muted mb-1">Źródło</label>
+          <select name="source" class="form-select form-select-sm">
+            <option value="">Wszystkie źródła</option>
+            {% for value, label in source_choices %}
+            <option value="{{ value }}" {% if filter_source == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-3">
+          <label class="form-label small text-muted mb-1">Etap</label>
+          <select name="stage" class="form-select form-select-sm">
+            <option value="">Wszystkie etapy</option>
+            {% for stage in stages %}
+            <option value="{{ stage.pk }}" {% if filter_stage == stage.pk|stringformat:"s" %}selected{% endif %}>
+              {{ stage.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-3 d-flex gap-2">
+          <button type="submit" class="btn btn-sm btn-primary flex-fill">Filtruj</button>
+          <a href="{% url 'leads:list' %}" class="btn btn-sm btn-outline-secondary">✕</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabela leadów -->
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-vcenter table-hover card-table">
+        <thead>
+          <tr>
+            <th>Tytuł</th>
+            <th>Firma</th>
+            <th>Etap</th>
+            <th>Status</th>
+            <th>Wartość</th>
+            <th>Opiekun</th>
+            <th>Źródło</th>
+            <th class="w-1"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in leads %}
+          <tr>
+            <td>
+              <a href="{% url 'leads:detail' lead.pk %}" class="fw-semibold text-dark">
+                {{ lead.title }}
+              </a>
+              <div class="text-muted small">{{ lead.created_at|date:"d.m.Y" }}</div>
+            </td>
+            <td>
+              <a href="{% url 'companies:detail' lead.company.pk %}" class="text-muted small">
+                {{ lead.company.name }}
+              </a>
+            </td>
+            <td>
+              <span class="badge"
+                    style="background-color: {{ lead.stage.color }}20; color: {{ lead.stage.color }}; border: 1px solid {{ lead.stage.color }}">
+                {{ lead.stage.name }}
+              </span>
+            </td>
+            <td>
+              {% if lead.status == "NOWY" %}
+              <span class="badge bg-secondary-lt text-muted">Nowy</span>
+              {% elif lead.status == "W_TOKU" %}
+              <span class="badge bg-blue-lt text-blue">W toku</span>
+              {% elif lead.status == "WYGRANA" %}
+              <span class="badge bg-success-lt text-success">Wygrana</span>
+              {% elif lead.status == "PRZEGRANA" %}
+              <span class="badge bg-danger-lt text-danger">Przegrana</span>
+              {% else %}
+              <span class="badge bg-secondary-lt text-muted">{{ lead.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end fw-semibold">{{ lead.value_display }}</td>
+            <td class="text-muted small">
+              {{ lead.owner.get_full_name|default:lead.owner.username|default:"—" }}
+            </td>
+            <td class="text-muted small">{{ lead.get_source_display }}</td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-ghost-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/>
+                    <circle cx="12" cy="19" r="1"/>
+                  </svg>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                  <a class="dropdown-item" href="{% url 'leads:detail' lead.pk %}">Szczegóły</a>
+                  <a class="dropdown-item" href="{% url 'leads:update' lead.pk %}">Edytuj</a>
+                  {% if is_admin %}
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item text-danger"
+                     href="{% url 'leads:delete' lead.pk %}">Usuń</a>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              Brak leadów spełniających kryteria.
+              <a href="{% url 'leads:create' %}">Dodaj pierwszy lead →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginacja -->
+    {% if is_paginated %}
+    <div class="card-footer d-flex align-items-center">
+      <p class="m-0 text-muted small">
+        Strona {{ page_obj.number }} z {{ paginator.num_pages }}
+      </p>
+      <ul class="pagination m-0 ms-auto">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_source %}&source={{ filter_source }}{% endif %}{% if filter_stage %}&stage={{ filter_stage }}{% endif %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </a>
+        </li>
+        {% endif %}
+        {% for num in paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_source %}&source={{ filter_source }}{% endif %}{% if filter_stage %}&stage={{ filter_stage }}{% endif %}">{{ num }}</a>
+          </li>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_source %}&source={{ filter_source }}{% endif %}{% if filter_stage %}&stage={{ filter_stage }}{% endif %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+  </div><!-- /.card -->
+</div>
+{% endblock %}

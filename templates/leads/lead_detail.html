@@ -1,0 +1,226 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ lead.title }}{% endblock %}
+{% block page_title %}{{ lead.title }}{% endblock %}
+{% block nav_leads %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Przyciski akcji -->
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="{% url 'leads:list' %}" class="btn btn-outline-secondary btn-sm">
+      ← Lista leadów
+    </a>
+    {% if can_edit and not lead.is_closed %}
+    <a href="{% url 'leads:update' lead.pk %}" class="btn btn-primary btn-sm">
+      Edytuj lead
+    </a>
+    {% endif %}
+    {% if can_edit and not lead.is_closed %}
+    <!-- Zamknij jako Wygrana -->
+    <form method="post" action="{% url 'leads:close' lead.pk %}" class="d-inline">
+      {% csrf_token %}
+      <input type="hidden" name="close_status" value="WYGRANA">
+      <button type="submit" class="btn btn-success btn-sm">
+        Wygrana ✓
+      </button>
+    </form>
+    <!-- Zamknij jako Przegrana -->
+    <form method="post" action="{% url 'leads:close' lead.pk %}" class="d-inline">
+      {% csrf_token %}
+      <input type="hidden" name="close_status" value="PRZEGRANA">
+      <button type="submit" class="btn btn-danger btn-sm">
+        Przegrana ✗
+      </button>
+    </form>
+    {% endif %}
+    {% if is_admin %}
+    <a href="{% url 'leads:delete' lead.pk %}"
+       class="btn btn-outline-danger btn-sm ms-auto">
+      Usuń lead
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+
+    <!-- Karta: Dane leada -->
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">Dane leada</h3>
+          <div class="ms-2">
+            {% if lead.status == "NOWY" %}
+            <span class="badge bg-secondary-lt text-muted">Nowy</span>
+            {% elif lead.status == "W_TOKU" %}
+            <span class="badge bg-blue-lt text-blue">W toku</span>
+            {% elif lead.status == "WYGRANA" %}
+            <span class="badge bg-success-lt text-success">Wygrana</span>
+            {% elif lead.status == "PRZEGRANA" %}
+            <span class="badge bg-danger-lt text-danger">Przegrana</span>
+            {% else %}
+            <span class="badge bg-secondary-lt text-muted">{{ lead.get_status_display }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-5 text-muted fw-normal small">Firma</dt>
+            <dd class="col-7">
+              <a href="{% url 'companies:detail' lead.company.pk %}">
+                {{ lead.company.name }}
+              </a>
+            </dd>
+
+            {% if lead.contact %}
+            <dt class="col-5 text-muted fw-normal small">Kontakt</dt>
+            <dd class="col-7">
+              <a href="{% url 'contacts:detail' lead.contact.pk %}">
+                {{ lead.contact.full_name }}
+              </a>
+            </dd>
+            {% endif %}
+
+            <dt class="col-5 text-muted fw-normal small">Etap</dt>
+            <dd class="col-7">
+              <span class="badge"
+                    style="background: {{ lead.stage.color }}20; color: {{ lead.stage.color }}; border: 1px solid {{ lead.stage.color }}">
+                {{ lead.stage.name }}
+              </span>
+            </dd>
+
+            <dt class="col-5 text-muted fw-normal small">Wartość</dt>
+            <dd class="col-7 fw-semibold">{{ lead.value_display }}</dd>
+
+            <dt class="col-5 text-muted fw-normal small">Źródło</dt>
+            <dd class="col-7">{{ lead.get_source_display }}</dd>
+
+            <dt class="col-5 text-muted fw-normal small">Opiekun</dt>
+            <dd class="col-7">
+              {{ lead.owner.get_full_name|default:lead.owner.username|default:"—" }}
+            </dd>
+
+            <dt class="col-5 text-muted fw-normal small">Dodano</dt>
+            <dd class="col-7">{{ lead.created_at|date:"d.m.Y H:i" }}</dd>
+
+            {% if lead.closed_at %}
+            <dt class="col-5 text-muted fw-normal small">Zamknięto</dt>
+            <dd class="col-7">{{ lead.closed_at|date:"d.m.Y H:i" }}</dd>
+            {% endif %}
+          </dl>
+
+          {% if lead.description %}
+          <hr/>
+          <p class="text-muted small mb-1">Opis</p>
+          <p class="mb-0">{{ lead.description|linebreaksbr }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Zakładki: Zadania / Notatki / Dokumenty -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header">
+          <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
+            <li class="nav-item">
+              <a href="#tab-tasks" class="nav-link active" data-bs-toggle="tab">
+                Zadania
+                <span class="badge bg-red-lt text-red ms-1">{{ lead.tasks.count }}</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#tab-notes" class="nav-link" data-bs-toggle="tab">
+                Notatki
+                <span class="badge bg-secondary ms-1">{{ lead.notes.count }}</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#tab-documents" class="nav-link" data-bs-toggle="tab">
+                Dokumenty
+                <span class="badge bg-secondary ms-1">{{ lead.documents.count }}</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card-body tab-content p-0">
+
+          <!-- Zadania -->
+          <div class="tab-pane active show" id="tab-tasks">
+            {% if lead.tasks.all %}
+            <table class="table table-sm table-hover mb-0">
+              <thead>
+                <tr><th>Zadanie</th><th>Typ</th><th>Termin</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {% for task in lead.tasks.all %}
+                <tr>
+                  <td>
+                    <a href="{% url 'tasks:detail' task.pk %}">{{ task.title }}</a>
+                  </td>
+                  <td class="text-muted small">{{ task.get_task_type_display }}</td>
+                  <td class="text-muted small">{{ task.due_date|date:"d.m.Y" }}</td>
+                  <td class="text-muted small">{{ task.get_status_display }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center text-muted py-4">Brak zadań.</div>
+            {% endif %}
+          </div>
+
+          <!-- Notatki -->
+          <div class="tab-pane" id="tab-notes">
+            {% if lead.notes.all %}
+            <div class="list-group list-group-flush">
+              {% for note in lead.notes.all %}
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between mb-1">
+                  <small class="text-muted">
+                    {{ note.author.get_full_name|default:note.author.username|default:"System" }}
+                  </small>
+                  <small class="text-muted">{{ note.created_at|date:"d.m.Y H:i" }}</small>
+                </div>
+                <p class="mb-0 small">{{ note.short_content }}</p>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4">Brak notatek.</div>
+            {% endif %}
+          </div>
+
+          <!-- Dokumenty -->
+          <div class="tab-pane" id="tab-documents">
+            {% if lead.documents.all %}
+            <table class="table table-sm table-hover mb-0">
+              <thead>
+                <tr><th>Tytuł</th><th>Typ</th><th>Data</th></tr>
+              </thead>
+              <tbody>
+                {% for doc in lead.documents.all %}
+                <tr>
+                  <td>
+                    <a href="{% url 'documents:detail' doc.pk %}">{{ doc.title }}</a>
+                  </td>
+                  <td class="text-muted small">{{ doc.get_doc_type_display }}</td>
+                  <td class="text-muted small">{{ doc.created_at|date:"d.m.Y" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center text-muted py-4">Brak dokumentów.</div>
+            {% endif %}
+          </div>
+
+        </div><!-- /.tab-content -->
+      </div>
+    </div>
+
+  </div><!-- /.row -->
+</div>
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ document.title }}{% endblock %}
+{% block page_title %}{{ document.title }}{% endblock %}
+{% block nav_documents %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Przyciski akcji -->
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="{% url 'documents:list' %}" class="btn btn-outline-secondary btn-sm">
+      ← Lista dokumentów
+    </a>
+    <a href="{% url 'documents:download' document.pk %}" class="btn btn-success btn-sm">
+      Pobierz plik
+    </a>
+    {% if can_edit %}
+    <a href="{% url 'documents:update' document.pk %}" class="btn btn-primary btn-sm">
+      Edytuj metadane
+    </a>
+    {% endif %}
+    {% if is_admin %}
+    <a href="{% url 'documents:delete' document.pk %}"
+       class="btn btn-outline-danger btn-sm ms-auto">
+      Usuń dokument
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+
+    <!-- Karta: Dane dokumentu -->
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">Dane dokumentu</h3>
+          <div class="ms-2">
+            <span class="badge bg-blue-lt text-blue">
+              {{ document.get_doc_type_display }}
+            </span>
+            {% if document.file_extension %}
+            <span class="badge bg-secondary-lt text-muted ms-1">
+              {{ document.file_extension|upper }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-5 text-muted fw-normal small">Rodzaj</dt>
+            <dd class="col-7">{{ document.get_doc_type_display }}</dd>
+
+            <dt class="col-5 text-muted fw-normal small">Plik</dt>
+            <dd class="col-7">
+              {% if document.file %}
+              <a href="{% url 'documents:download' document.pk %}" class="text-decoration-none">
+                {{ document.file_extension|upper|default:"plik" }}
+                — {{ document.file_size_display }}
+              </a>
+              {% else %}
+              <span class="text-muted">— brak pliku —</span>
+              {% endif %}
+            </dd>
+
+            <dt class="col-5 text-muted fw-normal small">Wgrał</dt>
+            <dd class="col-7">
+              {% if document.created_by %}
+              {{ document.created_by.get_full_name|default:document.created_by.username }}
+              {% else %}—{% endif %}
+            </dd>
+
+            {% if document.company %}
+            <dt class="col-5 text-muted fw-normal small">Firma</dt>
+            <dd class="col-7">
+              <a href="{% url 'companies:detail' document.company.pk %}">
+                {{ document.company.name }}
+              </a>
+            </dd>
+            {% endif %}
+
+            {% if document.lead %}
+            <dt class="col-5 text-muted fw-normal small">Lead</dt>
+            <dd class="col-7">
+              <a href="{% url 'leads:detail' document.lead.pk %}">
+                {{ document.lead.title }}
+              </a>
+            </dd>
+            {% endif %}
+
+            {% if document.deal %}
+            <dt class="col-5 text-muted fw-normal small">Umowa</dt>
+            <dd class="col-7">
+              <a href="{% url 'deals:detail' document.deal.pk %}">
+                {{ document.deal.title }}
+              </a>
+            </dd>
+            {% endif %}
+
+            <dt class="col-5 text-muted fw-normal small">Wgrano</dt>
+            <dd class="col-7">{{ document.created_at|date:"d.m.Y H:i" }}</dd>
+
+            <dt class="col-5 text-muted fw-normal small">Zaktualizowano</dt>
+            <dd class="col-7">{{ document.updated_at|date:"d.m.Y H:i" }}</dd>
+          </dl>
+
+          {% if document.description %}
+          <hr/>
+          <p class="text-muted small mb-1">Opis / komentarz</p>
+          <p class="mb-0">{{ document.description|linebreaksbr }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Karta: Powiązane rekordy -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">Powiązane rekordy</h3>
+        </div>
+        <div class="card-body">
+
+          {% if document.company %}
+          <div class="mb-4">
+            <h4 class="text-muted small text-uppercase fw-bold mb-2">Firma</h4>
+            <div class="d-flex align-items-center gap-2">
+              <div>
+                <a href="{% url 'companies:detail' document.company.pk %}" class="fw-semibold">
+                  {{ document.company.name }}
+                </a>
+                {% if document.company.phone %}
+                <div class="text-muted small">{{ document.company.phone }}</div>
+                {% endif %}
+              </div>
+              <a href="{% url 'documents:create' %}?company_id={{ document.company.pk }}"
+                 class="btn btn-sm btn-outline-primary ms-auto">
+                + Nowy dokument dla firmy
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if document.lead %}
+          <div class="mb-4">
+            <h4 class="text-muted small text-uppercase fw-bold mb-2">Lead</h4>
+            <div class="d-flex align-items-center gap-2">
+              <div>
+                <a href="{% url 'leads:detail' document.lead.pk %}" class="fw-semibold">
+                  {{ document.lead.title }}
+                </a>
+                <div class="text-muted small">{{ document.lead.get_status_display }}</div>
+              </div>
+              <a href="{% url 'documents:create' %}?lead_id={{ document.lead.pk }}"
+                 class="btn btn-sm btn-outline-primary ms-auto">
+                + Nowy dokument dla leada
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if document.deal %}
+          <div class="mb-4">
+            <h4 class="text-muted small text-uppercase fw-bold mb-2">Umowa</h4>
+            <div class="d-flex align-items-center gap-2">
+              <div>
+                <a href="{% url 'deals:detail' document.deal.pk %}" class="fw-semibold">
+                  {{ document.deal.title }}
+                </a>
+                <div class="text-muted small">{{ document.deal.value_display }}</div>
+              </div>
+              <a href="{% url 'documents:create' %}?deal_id={{ document.deal.pk }}"
+                 class="btn btn-sm btn-outline-primary ms-auto">
+                + Nowy dokument dla umowy
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if not document.company and not document.lead and not document.deal %}
+          <div class="text-center text-muted py-4">
+            <p>Dokument nie jest powiązany z żadnym rekordem CRM.</p>
+            {% if can_edit %}
+            <a href="{% url 'documents:update' document.pk %}"
+               class="btn btn-sm btn-outline-secondary">
+              Dodaj powiązanie
+            </a>
+            {% endif %}
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.row -->
+</div>
+{% endblock %}

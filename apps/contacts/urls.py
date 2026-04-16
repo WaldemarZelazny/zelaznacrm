@@ -1,9 +1,17 @@
-"""URL routing dla aplikacji: contacts."""
+"""URL routing dla aplikacji contacts."""
 
 from __future__ import annotations
 
+from django.urls import path
+
+from . import views
+
 app_name = "contacts"
 
-urlpatterns: list = [
-    # Widoki będą dodane w Fazie 4.
+urlpatterns = [
+    path("", views.ContactListView.as_view(), name="list"),
+    path("add/", views.ContactCreateView.as_view(), name="create"),
+    path("<int:pk>/", views.ContactDetailView.as_view(), name="detail"),
+    path("<int:pk>/edit/", views.ContactUpdateView.as_view(), name="update"),
+    path("<int:pk>/delete/", views.ContactDeleteView.as_view(), name="delete"),
 ]

@@ -1,0 +1,217 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ task.title }}{% endblock %}
+{% block page_title %}{{ task.title }}{% endblock %}
+{% block nav_tasks %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Przyciski akcji -->
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="{% url 'tasks:list' %}" class="btn btn-outline-secondary btn-sm">
+      ← Lista zadań
+    </a>
+    {% if can_edit and task.status == "DO_ZROBIENIA" or can_edit and task.status == "W_TOKU" %}
+    <a href="{% url 'tasks:update' task.pk %}" class="btn btn-primary btn-sm">
+      Edytuj zadanie
+    </a>
+    <!-- Oznacz jako wykonane -->
+    <form method="post" action="{% url 'tasks:complete' task.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success btn-sm">
+        Wykonane ✓
+      </button>
+    </form>
+    <!-- Anuluj zadanie -->
+    <form method="post" action="{% url 'tasks:cancel' task.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-danger btn-sm"
+              onclick="return confirm('Czy na pewno anulować to zadanie?')">
+        Anuluj zadanie
+      </button>
+    </form>
+    {% endif %}
+    {% if is_admin %}
+    <a href="{% url 'tasks:delete' task.pk %}"
+       class="btn btn-outline-danger btn-sm ms-auto">
+      Usuń zadanie
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+
+    <!-- Karta: Dane zadania -->
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">Dane zadania</h3>
+          <div class="ms-2 d-flex gap-1 flex-wrap">
+            {% if task.status == "WYKONANE" %}
+            <span class="badge bg-success-lt text-success">Wykonane</span>
+            {% elif task.status == "W_TOKU" %}
+            <span class="badge bg-blue-lt text-blue">W toku</span>
+            {% elif task.status == "ANULOWANE" %}
+            <span class="badge bg-secondary-lt text-muted">Anulowane</span>
+            {% else %}
+            <span class="badge bg-secondary-lt text-muted">Do zrobienia</span>
+            {% endif %}
+
+            {% if task.priority == "PILNY" %}
+            <span class="badge bg-danger">Pilny</span>
+            {% elif task.priority == "WYSOKI" %}
+            <span class="badge bg-orange-lt text-orange">Wysoki</span>
+            {% elif task.priority == "SREDNI" %}
+            <span class="badge bg-blue-lt text-blue">Średni</span>
+            {% else %}
+            <span class="badge bg-secondary-lt text-muted">Niski</span>
+            {% endif %}
+
+            {% if task.is_overdue %}
+            <span class="badge bg-danger-lt text-danger">Po terminie</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-5 text-muted fw-normal small">Typ</dt>
+            <dd class="col-7">{{ task.get_task_type_display }}</dd>
+
+            <dt class="col-5 text-muted fw-normal small">Termin</dt>
+            <dd class="col-7 {% if task.is_overdue %}text-danger fw-semibold{% endif %}">
+              {{ task.due_date|date:"d.m.Y H:i" }}
+            </dd>
+
+            {% if task.completed_at %}
+            <dt class="col-5 text-muted fw-normal small">Wykonano</dt>
+            <dd class="col-7">{{ task.completed_at|date:"d.m.Y H:i" }}</dd>
+            {% endif %}
+
+            <dt class="col-5 text-muted fw-normal small">Przypisane do</dt>
+            <dd class="col-7">
+              {% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-5 text-muted fw-normal small">Utworzone przez</dt>
+            <dd class="col-7">
+              {% if task.created_by %}{{ task.created_by.get_full_name|default:task.created_by.username }}{% else %}—{% endif %}
+            </dd>
+
+            {% if task.company %}
+            <dt class="col-5 text-muted fw-normal small">Firma</dt>
+            <dd class="col-7">
+              <a href="{% url 'companies:detail' task.company.pk %}">{{ task.company.name }}</a>
+            </dd>
+            {% endif %}
+
+            {% if task.lead %}
+            <dt class="col-5 text-muted fw-normal small">Lead</dt>
+            <dd class="col-7">
+              <a href="{% url 'leads:detail' task.lead.pk %}">{{ task.lead.title }}</a>
+            </dd>
+            {% endif %}
+
+            {% if task.deal %}
+            <dt class="col-5 text-muted fw-normal small">Umowa</dt>
+            <dd class="col-7">
+              <a href="{% url 'deals:detail' task.deal.pk %}">{{ task.deal.title }}</a>
+            </dd>
+            {% endif %}
+
+            <dt class="col-5 text-muted fw-normal small">Dodano</dt>
+            <dd class="col-7">{{ task.created_at|date:"d.m.Y H:i" }}</dd>
+
+            <dt class="col-5 text-muted fw-normal small">Zaktualizowano</dt>
+            <dd class="col-7">{{ task.updated_at|date:"d.m.Y H:i" }}</dd>
+          </dl>
+
+          {% if task.description %}
+          <hr/>
+          <p class="text-muted small mb-1">Opis / notatki</p>
+          <p class="mb-0">{{ task.description|linebreaksbr }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Karta: Szybkie akcje i powiązania -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header">
+          <h3 class="card-title">Powiązane rekordy</h3>
+        </div>
+        <div class="card-body">
+
+          {% if task.company %}
+          <div class="mb-4">
+            <h4 class="text-muted small text-uppercase fw-bold mb-2">Firma</h4>
+            <div class="d-flex align-items-center gap-2">
+              <div>
+                <a href="{% url 'companies:detail' task.company.pk %}" class="fw-semibold">
+                  {{ task.company.name }}
+                </a>
+                {% if task.company.phone %}
+                <div class="text-muted small">{{ task.company.phone }}</div>
+                {% endif %}
+              </div>
+              <a href="{% url 'tasks:create' %}?company_id={{ task.company.pk }}"
+                 class="btn btn-sm btn-outline-primary ms-auto">
+                + Nowe zadanie dla firmy
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if task.lead %}
+          <div class="mb-4">
+            <h4 class="text-muted small text-uppercase fw-bold mb-2">Lead</h4>
+            <div class="d-flex align-items-center gap-2">
+              <div>
+                <a href="{% url 'leads:detail' task.lead.pk %}" class="fw-semibold">
+                  {{ task.lead.title }}
+                </a>
+                <div class="text-muted small">{{ task.lead.get_status_display }}</div>
+              </div>
+              <a href="{% url 'tasks:create' %}?lead_id={{ task.lead.pk }}"
+                 class="btn btn-sm btn-outline-primary ms-auto">
+                + Nowe zadanie dla leada
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if task.deal %}
+          <div class="mb-4">
+            <h4 class="text-muted small text-uppercase fw-bold mb-2">Umowa</h4>
+            <div class="d-flex align-items-center gap-2">
+              <div>
+                <a href="{% url 'deals:detail' task.deal.pk %}" class="fw-semibold">
+                  {{ task.deal.title }}
+                </a>
+                <div class="text-muted small">{{ task.deal.value_display }}</div>
+              </div>
+              <a href="{% url 'tasks:create' %}?deal_id={{ task.deal.pk }}"
+                 class="btn btn-sm btn-outline-primary ms-auto">
+                + Nowe zadanie dla umowy
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if not task.company and not task.lead and not task.deal %}
+          <div class="text-center text-muted py-4">
+            <p>Zadanie nie jest powiązane z żadnym rekordem CRM.</p>
+            <a href="{% url 'tasks:update' task.pk %}" class="btn btn-sm btn-outline-secondary">
+              Dodaj powiązanie
+            </a>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.row -->
+</div>
+{% endblock %}

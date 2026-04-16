@@ -1,0 +1,176 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Dokumenty{% endblock %}
+{% block page_title %}Dokumenty{% endblock %}
+{% block nav_documents %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <!-- Pasek akcji -->
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <a href="{% url 'documents:create' %}" class="btn btn-primary btn-sm">
+      + Dodaj dokument
+    </a>
+  </div>
+
+  <!-- Filtry -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small text-muted mb-1">Typ dokumentu</label>
+          <select name="doc_type" class="form-select form-select-sm">
+            <option value="">— wszystkie typy —</option>
+            {% for value, label in doc_type_choices %}
+            <option value="{{ value }}" {% if filter_doc_type == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted mb-1">Firma</label>
+          <input type="text" name="company" class="form-control form-control-sm"
+                 placeholder="Szukaj po nazwie…" value="{{ filter_company }}">
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-secondary btn-sm w-100">Filtruj</button>
+        </div>
+        <div class="col-md-2">
+          <a href="{% url 'documents:list' %}" class="btn btn-outline-secondary btn-sm w-100">
+            Wyczyść
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabela dokumentów -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        Dokumenty
+        {% if is_admin %}
+        <span class="badge bg-blue-lt text-blue ms-1">Widok: wszystkie</span>
+        {% else %}
+        <span class="badge bg-secondary-lt text-muted ms-1">Widok: moje</span>
+        {% endif %}
+      </h3>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-vcenter table-hover card-table">
+        <thead>
+          <tr>
+            <th>Tytuł / plik</th>
+            <th>Typ</th>
+            <th>Powiązany z</th>
+            <th>Wgrał</th>
+            <th>Data wgrania</th>
+            <th class="w-1"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in documents %}
+          <tr>
+            <td>
+              <a href="{% url 'documents:detail' doc.pk %}" class="fw-semibold text-decoration-none">
+                {{ doc.title }}
+              </a>
+              <div class="text-muted small">
+                {% if doc.file_extension %}
+                <span class="badge bg-secondary-lt text-muted">{{ doc.file_extension|upper }}</span>
+                {% endif %}
+                {{ doc.file_size_display }}
+              </div>
+            </td>
+            <td class="text-muted small">{{ doc.get_doc_type_display }}</td>
+            <td class="text-muted small">
+              {% if doc.company %}
+              <a href="{% url 'companies:detail' doc.company.pk %}">{{ doc.company.name }}</a>
+              {% endif %}
+              {% if doc.lead %}
+              <div><a href="{% url 'leads:detail' doc.lead.pk %}">{{ doc.lead.title }}</a></div>
+              {% endif %}
+              {% if doc.deal %}
+              <div><a href="{% url 'deals:detail' doc.deal.pk %}">{{ doc.deal.title }}</a></div>
+              {% endif %}
+              {% if not doc.company and not doc.lead and not doc.deal %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">
+              {% if doc.created_by %}
+              {{ doc.created_by.get_full_name|default:doc.created_by.username }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-muted small">{{ doc.created_at|date:"d.m.Y" }}</td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                  Akcje
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                  <a class="dropdown-item" href="{% url 'documents:download' doc.pk %}">
+                    Pobierz
+                  </a>
+                  <a class="dropdown-item" href="{% url 'documents:detail' doc.pk %}">
+                    Szczegóły
+                  </a>
+                  <a class="dropdown-item" href="{% url 'documents:update' doc.pk %}">
+                    Edytuj
+                  </a>
+                  {% if is_admin %}
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item text-danger"
+                     href="{% url 'documents:delete' doc.pk %}">
+                    Usuń
+                  </a>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">
+              Brak dokumentów.
+              <a href="{% url 'documents:create' %}">Dodaj pierwszy dokument.</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginacja -->
+    {% if is_paginated %}
+    <div class="card-footer d-flex align-items-center">
+      <p class="m-0 text-muted small">
+        Strona {{ page_obj.number }} z {{ page_obj.paginator.num_pages }}
+      </p>
+      <ul class="pagination m-0 ms-auto">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_doc_type %}&doc_type={{ filter_doc_type }}{% endif %}{% if filter_company %}&company={{ filter_company }}{% endif %}">
+            ‹
+          </a>
+        </li>
+        {% endif %}
+        <li class="page-item active">
+          <span class="page-link">{{ page_obj.number }}</span>
+        </li>
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_doc_type %}&doc_type={{ filter_doc_type }}{% endif %}{% if filter_company %}&company={{ filter_company }}{% endif %}">
+            ›
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+  </div><!-- /.card -->
+</div>
+{% endblock %}

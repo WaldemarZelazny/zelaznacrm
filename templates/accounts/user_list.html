@@ -1,0 +1,81 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Uzytkownicy{% endblock %}
+{% block page_title %}Uzytkownicy{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="{% url 'accounts:user_create' %}" class="btn btn-primary btn-sm ms-auto">
+      + Nowy uzytkownik
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-vcenter table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Uzytkownik</th>
+              <th>E-mail</th>
+              <th>Rola</th>
+              <th>Telefon</th>
+              <th>Aktywny</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td>
+                <div class="fw-semibold">
+                  {{ u.get_full_name|default:u.username }}
+                </div>
+                <div class="text-muted small">{{ u.username }}</div>
+              </td>
+              <td class="text-muted small">{{ u.email|default:"&mdash;" }}</td>
+              <td>
+                {% if u.profile %}
+                <span class="badge
+                  {% if u.profile.role == 'ADMIN' %}bg-danger-lt text-danger
+                  {% else %}bg-primary-lt text-primary{% endif %}">
+                  {{ u.profile.get_role_display }}
+                </span>
+                {% else %}
+                &mdash;
+                {% endif %}
+              </td>
+              <td class="text-muted small">
+                {% if u.profile %}{{ u.profile.phone|default:"&mdash;" }}{% else %}&mdash;{% endif %}
+              </td>
+              <td>
+                {% if u.is_active %}
+                <span class="badge bg-success-lt text-success">Tak</span>
+                {% else %}
+                <span class="badge bg-secondary-lt text-muted">Nie</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <a href="{% url 'accounts:user_detail' u.pk %}"
+                   class="btn btn-sm btn-outline-secondary">
+                  Szczegoly
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">
+                Brak uzytkownikow w systemie.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

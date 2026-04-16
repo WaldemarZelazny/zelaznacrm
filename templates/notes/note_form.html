@@ -1,0 +1,36 @@
+{% extends "base_dashboard.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_title %}{{ form_title }}{% endblock %}
+{% block nav_notes %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      <!-- Breadcrumb -->
+      <div class="mb-3">
+        <a href="{% url 'notes:list' %}" class="text-muted small">← Lista notatek</a>
+        {% if object %}
+        <span class="text-muted small"> / </span>
+        <a href="{% url 'notes:detail' object.pk %}" class="text-muted small">
+          Notatka #{{ object.pk }}
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h3 class="card-title">{{ form_title }}</h3>
+        </div>
+        <div class="card-body">
+          {% crispy form %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
