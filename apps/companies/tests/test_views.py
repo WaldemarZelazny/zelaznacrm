@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from unittest.mock import MagicMock, patch
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -333,3 +336,127 @@ class CompanyDeleteViewTest(TestCase):
         self.client.post(reverse("companies:delete", kwargs={"pk": self.company.pk}))
         # Firma powinna nadal istniesc
         self.assertTrue(Company.objects.filter(pk=self.company.pk).exists())
+
+
+# ---------------------------------------------------------------------------
+# Testy: NipLookupView
+# ---------------------------------------------------------------------------
+
+NIP_LOOKUP_URL = reverse("companies:nip_lookup")
+_MF_SUBJECT = {
+    "name": "ACME Sp. z o.o.",
+    "workingAddress": "ul. Testowa 1, 00-001 Warszawa",
+}
+_MF_RESPONSE = {"result": {"subject": _MF_SUBJECT}}
+
+
+def _mock_mf_response(
+    status_code: int = 200, json_data: dict | None = None
+) -> MagicMock:
+    mock = MagicMock()
+    mock.status_code = status_code
+    mock.json.return_value = json_data if json_data is not None else _MF_RESPONSE
+    return mock
+
+
+class NipLookupAuthTest(TestCase):
+    """Niezalogowani użytkownicy są przekierowywani."""
+
+    def test_redirect_anonymous(self) -> None:
+        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+
+class NipLookupValidationTest(TestCase):
+    """Walidacja parametru NIP przed wywołaniem API."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("tester", password="pass")
+        self.client.force_login(self.user)
+
+    def test_missing_nip_returns_400(self) -> None:
+        response = self.client.get(NIP_LOOKUP_URL)
+        self.assertEqual(response.status_code, 400)
+
+    def test_too_short_nip_returns_400(self) -> None:
+        response = self.client.get(NIP_LOOKUP_URL + "?nip=123")
+        self.assertEqual(response.status_code, 400)
+
+    def test_non_digit_nip_returns_400(self) -> None:
+        response = self.client.get(NIP_LOOKUP_URL + "?nip=ABCDEFGHIJ")
+        self.assertEqual(response.status_code, 400)
+
+    def test_nip_with_dashes_accepted(self) -> None:
+        """NIP z myślnikami (np. 123-456-78-90) powinien przejść walidację."""
+        with patch(
+            "apps.companies.views.requests.get",
+            return_value=_mock_mf_response(),
+        ):
+            response = self.client.get(NIP_LOOKUP_URL + "?nip=123-456-78-90")
+        # 10 cyfr po usunięciu myślników – walidacja przechodzi
+        self.assertNotEqual(response.status_code, 400)
+
+
+class NipLookupSuccessTest(TestCase):
+    """Poprawna odpowiedź MF zwraca uzupełnione dane firmy."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("tester", password="pass")
+        self.client.force_login(self.user)
+
+    @patch("apps.companies.views.requests.get", return_value=_mock_mf_response())
+    def test_returns_200_with_company_data(self, mock_get) -> None:
+        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data["name"], "ACME Sp. z o.o.")
+        self.assertEqual(data["city"], "Warszawa")
+        self.assertEqual(data["postal_code"], "00-001")
+        self.assertEqual(data["address"], "ul. Testowa 1")
+
+    @patch("apps.companies.views.requests.get", return_value=_mock_mf_response())
+    def test_calls_mf_api_once(self, mock_get) -> None:
+        self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        mock_get.assert_called_once()
+
+
+class NipLookupErrorTest(TestCase):
+    """Obsługa błędów: 404, timeout, błąd połączenia."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("tester", password="pass")
+        self.client.force_login(self.user)
+
+    @patch(
+        "apps.companies.views.requests.get",
+        return_value=_mock_mf_response(status_code=404),
+    )
+    def test_mf_404_returns_404(self, mock_get) -> None:
+        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("error", json.loads(response.content))
+
+    @patch(
+        "apps.companies.views.requests.get",
+        side_effect=__import__("requests").Timeout,
+    )
+    def test_timeout_returns_504(self, mock_get) -> None:
+        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        self.assertEqual(response.status_code, 504)
+
+    @patch(
+        "apps.companies.views.requests.get",
+        side_effect=__import__("requests").RequestException("conn error"),
+    )
+    def test_request_exception_returns_502(self, mock_get) -> None:
+        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        self.assertEqual(response.status_code, 502)
+
+    @patch(
+        "apps.companies.views.requests.get",
+        return_value=_mock_mf_response(json_data={"result": {"subject": {}}}),
+    )
+    def test_empty_subject_returns_404(self, mock_get) -> None:
+        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        self.assertEqual(response.status_code, 404)

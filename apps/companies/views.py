@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
+
+import requests
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
+from django.http import JsonResponse
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -165,6 +170,95 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx["form_title"] = "Edytuj: %s" % self.object.name
         return ctx
+
+
+class NipLookupView(LoginRequiredMixin, View):
+    """Pobiera dane firmy z Białej Listy MF na podstawie NIP.
+
+    GET /companies/nip-lookup/?nip=XXXXXXXXXX
+    Zwraca JSON: {name, address, city, postal_code} lub {error: "..."}
+    """
+
+    MF_API_URL = "https://wl-api.mf.gov.pl/api/search/nip/{nip}?date={date}"
+    TIMEOUT = 5
+
+    def get(self, request, *args, **kwargs):
+        nip = request.GET.get("nip", "").strip().replace("-", "").replace(" ", "")
+        if not nip.isdigit() or len(nip) != 10:
+            return JsonResponse(
+                {"error": "Nieprawidłowy NIP (wymagane 10 cyfr)."}, status=400
+            )
+
+        today = datetime.date.today().isoformat()
+        url = self.MF_API_URL.format(nip=nip, date=today)
+        try:
+            resp = requests.get(url, timeout=self.TIMEOUT)
+        except requests.Timeout:
+            logger.warning("NipLookupView: timeout dla NIP %s", nip)
+            return JsonResponse(
+                {"error": "Serwis MF nie odpowiedział (timeout)."}, status=504
+            )
+        except requests.RequestException as exc:
+            logger.error("NipLookupView: błąd połączenia dla NIP %s: %s", nip, exc)
+            return JsonResponse({"error": "Błąd połączenia z serwisem MF."}, status=502)
+
+        if resp.status_code == 404:
+            return JsonResponse(
+                {"error": "Nie znaleziono firmy o podanym NIP."}, status=404
+            )
+        if resp.status_code != 200:
+            logger.warning(
+                "NipLookupView: MF zwróciło %s dla NIP %s", resp.status_code, nip
+            )
+            return JsonResponse({"error": "Serwis MF zwrócił błąd."}, status=502)
+
+        try:
+            subject = resp.json().get("result", {}).get("subject", {})
+        except ValueError:
+            return JsonResponse({"error": "Błąd parsowania odpowiedzi MF."}, status=502)
+
+        if not subject:
+            return JsonResponse(
+                {"error": "Nie znaleziono firmy o podanym NIP."}, status=404
+            )
+
+        name = subject.get("name", "")
+        working_address = subject.get("workingAddress", "") or subject.get(
+            "residenceAddress", ""
+        )
+        city, postal_code, address = self._parse_address(working_address)
+
+        return JsonResponse(
+            {
+                "name": name,
+                "address": address,
+                "city": city,
+                "postal_code": postal_code,
+            }
+        )
+
+    @staticmethod
+    def _parse_address(raw: str) -> tuple[str, str, str]:
+        """Parsuje adres MF w formacie 'ul. Przykładowa 1, 00-000 Miasto'.
+
+        Returns:
+            Krotka (city, postal_code, street_address).
+        """
+        if not raw:
+            return "", "", ""
+        parts = [p.strip() for p in raw.split(",")]
+        street = parts[0] if parts else ""
+        city = ""
+        postal_code = ""
+        for part in parts[1:]:
+            tokens = part.strip().split(" ", 1)
+            if len(tokens) == 2 and len(tokens[0]) == 6 and tokens[0][2] == "-":
+                postal_code = tokens[0]
+                city = tokens[1]
+                break
+            else:
+                city = part.strip()
+        return city, postal_code, street
 
 
 class CompanyDeleteView(LoginRequiredMixin, DeleteView):

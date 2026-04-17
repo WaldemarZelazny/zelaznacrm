@@ -37,6 +37,8 @@ urlpatterns = [
 # W trybie deweloperskim serwuj pliki media przez Django
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:
     import debug_toolbar  # noqa: E402
 
     urlpatterns = [

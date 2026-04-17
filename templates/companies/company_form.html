@@ -29,6 +29,9 @@
         </div>
         <div class="card-body">
 
+          <!-- Komunikat NIP autofill -->
+          <div id="nip-alert" class="alert d-none mb-3" role="alert"></div>
+
           <!-- Sekcja: Dane podstawowe -->
           <h4 class="text-muted small text-uppercase fw-bold mb-3">Dane podstawowe</h4>
           {% crispy form %}
@@ -39,4 +42,77 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var NIP_LOOKUP_URL = "{% url 'companies:nip_lookup' %}";
+
+  var nipField = document.getElementById("id_nip");
+  if (!nipField) return;
+
+  var alert = document.getElementById("nip-alert");
+
+  function showAlert(msg, type) {
+    alert.className = "alert alert-" + type + " mb-3";
+    alert.textContent = msg;
+  }
+
+  function hideAlert() {
+    alert.className = "alert d-none mb-3";
+  }
+
+  function setSpinner(active) {
+    var label = document.querySelector('label[for="id_nip"]');
+    var spinner = document.getElementById("nip-spinner");
+    if (active) {
+      if (!spinner) {
+        spinner = document.createElement("span");
+        spinner.id = "nip-spinner";
+        spinner.className = "spinner-border spinner-border-sm ms-2 text-primary";
+        spinner.setAttribute("role", "status");
+        if (label) label.appendChild(spinner);
+      }
+    } else {
+      if (spinner) spinner.remove();
+    }
+  }
+
+  nipField.addEventListener("blur", function () {
+    var nip = nipField.value.replace(/[-\s]/g, "");
+    if (nip.length !== 10 || !/^\d+$/.test(nip)) return;
+
+    hideAlert();
+    setSpinner(true);
+
+    fetch(NIP_LOOKUP_URL + "?nip=" + encodeURIComponent(nip), {
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        setSpinner(false);
+        if (!res.ok) {
+          showAlert(res.data.error || "Nie znaleziono firmy.", "warning");
+          return;
+        }
+        var d = res.data;
+        if (d.name)         _fill("id_name", d.name);
+        if (d.address)      _fill("id_address", d.address);
+        if (d.city)         _fill("id_city", d.city);
+        if (d.postal_code)  _fill("id_postal_code", d.postal_code);
+        showAlert("Dane firmy uzupełnione automatycznie z bazy MF.", "success");
+      })
+      .catch(function () {
+        setSpinner(false);
+        showAlert("Błąd połączenia z serwisem MF.", "danger");
+      });
+  });
+
+  function _fill(fieldId, value) {
+    var el = document.getElementById(fieldId);
+    if (el && !el.value) el.value = value;
+  }
+})();
+</script>
 {% endblock %}
