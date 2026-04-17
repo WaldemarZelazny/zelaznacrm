@@ -214,6 +214,23 @@
               </a>
             </li>
 
+            <!-- Panel Django Admin – tylko staff -->
+            {% if request.user.is_staff %}
+            <li class="nav-item">
+              <a class="nav-link" href="/admin/" target="_blank" rel="noopener noreferrer">
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0 -18z"/>
+                    <path d="M9 12l2 2l4 -4"/>
+                  </svg>
+                </span>
+                <span class="nav-link-title">Panel Django Admin</span>
+              </a>
+            </li>
+            {% endif %}
+
           </ul>
 
           <!-- Dół sidebara – użytkownik -->
