@@ -17,6 +17,8 @@ class UserProfileInline(admin.StackedInline):
     can_delete = False
     verbose_name_plural = _("profil")
     fields = ("role", "phone", "avatar")
+    # Profil zawsze istnieje (sygnał post_save), nie pokazujemy pustego formularza.
+    extra = 0
 
 
 class UserAdmin(BaseUserAdmin):
@@ -40,6 +42,21 @@ class UserAdmin(BaseUserAdmin):
             return obj.profile.get_role_display()
         except UserProfile.DoesNotExist:
             return "—"
+
+    def save_formset(self, request, form, formset, change):
+        # Sygnał post_save już utworzył UserProfile — używamy update_or_create
+        # zamiast pozwolić inline zapisać nowy rekord (IntegrityError na UNIQUE).
+        if formset.model is not UserProfile:
+            super().save_formset(request, form, formset, change)
+            return
+
+        instances = formset.save(commit=False)
+        for obj in instances:
+            UserProfile.objects.update_or_create(
+                user=obj.user,
+                defaults={"role": obj.role, "phone": obj.phone, "avatar": obj.avatar},
+            )
+        formset.save_m2m()
 
 
 # Zastępujemy domyślny UserAdmin rozszerzonym
