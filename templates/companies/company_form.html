@@ -29,8 +29,23 @@
         </div>
         <div class="card-body">
 
-          <!-- Komunikat NIP autofill -->
-          <div id="nip-alert" class="alert d-none mb-3" role="alert"></div>
+          <!-- NIP lookup helper -->
+          <div class="mb-4 p-3 bg-light rounded border">
+            <label class="form-label fw-semibold mb-2">
+              Autouzupełnianie z bazy MF (Biała Lista VAT)
+            </label>
+            <div class="input-group">
+              <input type="text" id="nip-lookup-input" class="form-control"
+                     placeholder="Wpisz NIP (10 cyfr)…" maxlength="13">
+              <button type="button" id="nip-lookup-btn" class="btn btn-primary">
+                <span id="nip-btn-text">Pobierz dane firmy</span>
+                <span id="nip-btn-spinner"
+                      class="spinner-border spinner-border-sm ms-1 d-none"
+                      role="status" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div id="nip-alert" class="mt-2 d-none alert mb-0" role="alert"></div>
+          </div>
 
           <!-- Sekcja: Dane podstawowe -->
           <h4 class="text-muted small text-uppercase fw-bold mb-3">Dane podstawowe</h4>
@@ -49,70 +64,70 @@
 (function () {
   var NIP_LOOKUP_URL = "{% url 'companies:nip_lookup' %}";
 
-  var nipField = document.getElementById("id_nip");
-  if (!nipField) return;
+  var btn     = document.getElementById("nip-lookup-btn");
+  var input   = document.getElementById("nip-lookup-input");
+  var alertEl = document.getElementById("nip-alert");
+  var btnText = document.getElementById("nip-btn-text");
+  var spinner = document.getElementById("nip-btn-spinner");
 
-  var alert = document.getElementById("nip-alert");
+  if (!btn || !input) return;
 
   function showAlert(msg, type) {
-    alert.className = "alert alert-" + type + " mb-3";
-    alert.textContent = msg;
+    alertEl.className = "mt-2 alert alert-" + type + " mb-0";
+    alertEl.textContent = msg;
   }
 
-  function hideAlert() {
-    alert.className = "alert d-none mb-3";
+  function setLoading(active) {
+    btn.disabled = active;
+    spinner.classList.toggle("d-none", !active);
+    btnText.textContent = active ? "Pobieranie…" : "Pobierz dane firmy";
   }
 
-  function setSpinner(active) {
-    var label = document.querySelector('label[for="id_nip"]');
-    var spinner = document.getElementById("nip-spinner");
-    if (active) {
-      if (!spinner) {
-        spinner = document.createElement("span");
-        spinner.id = "nip-spinner";
-        spinner.className = "spinner-border spinner-border-sm ms-2 text-primary";
-        spinner.setAttribute("role", "status");
-        if (label) label.appendChild(spinner);
-      }
-    } else {
-      if (spinner) spinner.remove();
+  function fill(fieldId, value) {
+    var el = document.getElementById(fieldId);
+    if (el) el.value = value;
+  }
+
+  btn.addEventListener("click", function () {
+    var nip = input.value.replace(/[-\s]/g, "");
+    if (nip.length !== 10 || !/^\d+$/.test(nip)) {
+      showAlert("Podaj prawidłowy NIP (10 cyfr).", "warning");
+      return;
     }
-  }
 
-  nipField.addEventListener("blur", function () {
-    var nip = nipField.value.replace(/[-\s]/g, "");
-    if (nip.length !== 10 || !/^\d+$/.test(nip)) return;
-
-    hideAlert();
-    setSpinner(true);
+    alertEl.className = "mt-2 alert d-none mb-0";
+    setLoading(true);
 
     fetch(NIP_LOOKUP_URL + "?nip=" + encodeURIComponent(nip), {
       headers: { "X-Requested-With": "XMLHttpRequest" },
     })
-      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+      })
       .then(function (res) {
-        setSpinner(false);
+        setLoading(false);
         if (!res.ok) {
-          showAlert(res.data.error || "Nie znaleziono firmy.", "warning");
+          showAlert(res.data.error || "Nie znaleziono firmy o podanym NIP.", "warning");
           return;
         }
         var d = res.data;
-        if (d.name)         _fill("id_name", d.name);
-        if (d.address)      _fill("id_address", d.address);
-        if (d.city)         _fill("id_city", d.city);
-        if (d.postal_code)  _fill("id_postal_code", d.postal_code);
-        showAlert("Dane firmy uzupełnione automatycznie z bazy MF.", "success");
+        fill("id_nip",         nip);
+        fill("id_name",        d.name        || "");
+        fill("id_address",     d.address     || "");
+        fill("id_city",        d.city        || "");
+        fill("id_postal_code", d.postal_code || "");
+        showAlert("Dane firmy zostały uzupełnione automatycznie z bazy MF.", "success");
       })
       .catch(function () {
-        setSpinner(false);
-        showAlert("Błąd połączenia z serwisem MF.", "danger");
+        setLoading(false);
+        showAlert("Błąd połączenia z serwisem MF. Spróbuj ponownie.", "danger");
       });
   });
 
-  function _fill(fieldId, value) {
-    var el = document.getElementById(fieldId);
-    if (el && !el.value) el.value = value;
-  }
+  /* Trigger przyciskiem po naciśnięciu Enter w polu NIP */
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); btn.click(); }
+  });
 })();
 </script>
 {% endblock %}
