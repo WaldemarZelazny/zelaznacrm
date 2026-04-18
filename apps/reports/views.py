@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -18,6 +19,8 @@ from apps.deals.models import Deal
 from apps.leads.models import Lead
 
 from .models import ActivityLog
+
+logger = logging.getLogger(__name__)
 
 
 def _is_admin(user) -> bool:
@@ -42,11 +45,16 @@ class ReportsDashboardView(LoginRequiredMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not _is_admin(request.user):
+            logger.warning(
+                "Odmowa dostepu do ReportsDashboard dla uzytkownika: %s",
+                request.user.username,
+            )
             raise PermissionDenied("Dostep tylko dla administratorow.")
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs) -> dict:
         ctx = super().get_context_data(**kwargs)
+        logger.debug("ReportsDashboardView: budowanie danych KPI")
 
         today = date.today()
         thirty_days_ago = today - timedelta(days=30)
@@ -135,6 +143,10 @@ class ActivityLogListView(LoginRequiredMixin, ListView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not _is_admin(request.user):
+            logger.warning(
+                "Odmowa dostepu do ActivityLog dla uzytkownika: %s",
+                request.user.username,
+            )
             raise PermissionDenied("Dostep tylko dla administratorow.")
         return super().dispatch(request, *args, **kwargs)
 
@@ -174,11 +186,16 @@ class SalesReportView(LoginRequiredMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not _is_admin(request.user):
+            logger.warning(
+                "Odmowa dostepu do SalesReport dla uzytkownika: %s",
+                request.user.username,
+            )
             raise PermissionDenied("Dostep tylko dla administratorow.")
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs) -> dict:
         ctx = super().get_context_data(**kwargs)
+        logger.debug("SalesReportView: budowanie raportu sprzedazowego")
 
         handlowcy = (
             User.objects.filter(profile__role=UserProfile.Role.HANDLOWIEC)
