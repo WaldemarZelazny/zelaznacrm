@@ -292,6 +292,13 @@ class NipLookupView(LoginRequiredMixin, View):
             logger.error("NipLookupView MF: błąd połączenia dla NIP %s: %s", nip, exc)
             return JsonResponse({"error": "Błąd połączenia z serwisem MF."}, status=502)
 
+        if resp.status_code == 400:
+            return JsonResponse(
+                {
+                    "error": "Nieprawidłowy NIP — sprawdź poprawność numeru (suma kontrolna)."
+                },
+                status=400,
+            )
         if resp.status_code == 404:
             return JsonResponse(
                 {"error": "Nie znaleziono firmy o podanym NIP."}, status=404

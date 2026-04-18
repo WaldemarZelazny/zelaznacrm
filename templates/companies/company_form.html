@@ -32,7 +32,7 @@
           <!-- NIP lookup helper -->
           <div class="mb-4 p-3 bg-light rounded border">
             <label class="form-label fw-semibold mb-2">
-              Autouzupełnianie z bazy MF (Biała Lista VAT)
+              Autouzupełnianie z NIP (CEIDG / Biała Lista MF)
             </label>
             <div class="input-group">
               <input type="text" id="nip-lookup-input" class="form-control"
@@ -116,7 +116,8 @@
         fill("id_address",     d.address     || "");
         fill("id_city",        d.city        || "");
         fill("id_postal_code", d.postal_code || "");
-        showAlert("Dane firmy zostały uzupełnione automatycznie z bazy MF.", "success");
+        var src = d.source === "CEIDG" ? "CEIDG" : "Białej Listy MF";
+        showAlert("Dane firmy uzupełnione z bazy " + src + ".", "success");
       })
       .catch(function () {
         setLoading(false);
