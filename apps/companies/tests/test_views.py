@@ -415,10 +415,23 @@ class NipLookupSuccessTest(TestCase):
         self.assertEqual(data["postal_code"], "00-001")
         self.assertEqual(data["address"], "ul. Testowa 1")
 
-    @patch("apps.companies.views.requests.get", return_value=_mock_mf_response())
-    def test_calls_mf_api_once(self, mock_get) -> None:
+    @patch("apps.companies.views.requests.get")
+    def test_calls_mf_api(self, mock_get) -> None:
+        """API MF jest wywoływane (z fallbackiem po CEIDG gdy token ustawiony)."""
+
+        def side_effect(url, **kwargs):
+            if "ceidg" in url:
+                m = MagicMock()
+                m.status_code = 404
+                return m
+            return _mock_mf_response()
+
+        mock_get.side_effect = side_effect
         self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
-        mock_get.assert_called_once()
+        self.assertTrue(mock_get.called)
+        # Ostatnie wywołanie to MF
+        last_url = mock_get.call_args[0][0]
+        self.assertIn("wl-api.mf.gov.pl", last_url)
 
 
 class NipLookupErrorTest(TestCase):

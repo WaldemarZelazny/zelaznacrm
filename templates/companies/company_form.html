@@ -28,11 +28,8 @@
           <h3 class="card-title">{{ form_title }}</h3>
         </div>
         <div class="card-body">
-
-          <!-- Sekcja: Dane podstawowe -->
           <h4 class="text-muted small text-uppercase fw-bold mb-3">Dane podstawowe</h4>
           {% crispy form %}
-
         </div>
       </div>
 
@@ -46,32 +43,11 @@
 (function () {
   var NIP_LOOKUP_URL = "{% url 'companies:nip_lookup' %}";
 
-  /* Znajdź pole id_nip renderowane przez crispy forms */
   var nipField = document.getElementById("id_nip");
-  if (!nipField) return;
+  var btn      = document.getElementById("nip-lookup-btn");
+  var alertEl  = document.getElementById("nip-alert");
 
-  /* Wstrzyknij input-group: opakuj pole NIP + dodaj przycisk */
-  var wrapper = document.createElement("div");
-  wrapper.className = "input-group";
-  nipField.parentNode.insertBefore(wrapper, nipField);
-  wrapper.appendChild(nipField);
-
-  var btn = document.createElement("button");
-  btn.type = "button";
-  btn.id = "nip-lookup-btn";
-  btn.className = "btn btn-secondary";
-  btn.innerHTML = '<span id="nip-btn-text">&#128269; Pobierz dane</span>' +
-    '<span id="nip-btn-spinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status" aria-hidden="true"></span>';
-  wrapper.appendChild(btn);
-
-  /* Alert pod polem NIP */
-  var alertEl = document.createElement("div");
-  alertEl.id = "nip-alert";
-  alertEl.className = "d-none";
-  wrapper.parentNode.insertBefore(alertEl, wrapper.nextSibling);
-
-  var btnText = document.getElementById("nip-btn-text");
-  var spinner = document.getElementById("nip-btn-spinner");
+  if (!nipField || !btn) return;
 
   function showAlert(msg, type) {
     alertEl.className = "alert alert-" + type + " mt-1 mb-0 py-2 small";
@@ -80,13 +56,14 @@
 
   function setLoading(active) {
     btn.disabled = active;
-    spinner.classList.toggle("d-none", !active);
-    btnText.innerHTML = active ? "Pobieranie\u2026" : "&#128269; Pobierz dane";
+    btn.innerHTML = active
+      ? '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Pobieranie\u2026'
+      : "&#128269; Pobierz dane";
   }
 
-  function fill(fieldId, value) {
-    var el = document.getElementById(fieldId);
-    if (el) el.value = value;
+  function fill(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.value = val;
   }
 
   btn.addEventListener("click", function () {
@@ -108,7 +85,7 @@
       .then(function (res) {
         setLoading(false);
         if (!res.ok) {
-          showAlert(res.data.error || "Nie znaleziono firmy o podanym NIP.", "warning");
+          showAlert(res.data.error || "Nie znaleziono firmy.", "warning");
           return;
         }
         var d = res.data;
@@ -121,11 +98,10 @@
       })
       .catch(function () {
         setLoading(false);
-        showAlert("Błąd połączenia z serwisem MF. Spróbuj ponownie.", "danger");
+        showAlert("Błąd połączenia. Spróbuj ponownie.", "danger");
       });
   });
 
-  /* Enter w polu NIP triggeruje przycisk */
   nipField.addEventListener("keydown", function (e) {
     if (e.key === "Enter") { e.preventDefault(); btn.click(); }
   });
