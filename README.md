@@ -95,6 +95,10 @@ python manage.py seed_demo_data --clear
 
 ### 7. Uruchomienie serwera deweloperskiego
 
+> **Uwaga:** Przed uruchomieniem upewnij się że nie ma starych procesów Django:
+> - Windows: `taskkill /F /IM python.exe`
+> - macOS/Linux: `pkill -f "manage.py runserver"`
+
 ```bash
 python manage.py runserver
 ```
@@ -185,20 +189,28 @@ DATABASE_URL=sqlite:///db.sqlite3
 
 ## Rozwiązywanie problemów
 
-### Serwer serwuje stary kod (zmiany nie są widoczne)
+Szczegółowe rozwiązania problemów znajdziesz w pliku [LESSONS_LEARNED.md](LESSONS_LEARNED.md).
 
-**Przyczyna:** Na porcie 8000 działa kilka starych procesów Django
-z poprzednich sesji. Nowe żądania trafiają do starego procesu.
+---
 
-**Rozwiązanie:**
+## Dokumentacja projektu
 
-1. Zabij wszystkie procesy Python:
-   - Windows: `taskkill /F /IM python.exe`
-   - macOS/Linux: `pkill -f "manage.py runserver"`
-2. Uruchom serwer ponownie: `python manage.py runserver`
+| Plik | Opis |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | Instrukcje i standardy dla Claude Code |
+| [CONTEXT.md](CONTEXT.md) | Kontekst projektu, stack, plan realizacji |
+| [LESSONS_LEARNED.md](LESSONS_LEARNED.md) | Rozwiązane problemy i wnioski z realizacji |
+| [CHANGELOG.md](CHANGELOG.md) | Historia zmian per faza |
 
-**Zapobieganie:** Zawsze zatrzymuj serwer przez Ctrl+C
-przed zamknięciem terminala.
+---
+
+## Pierwsze kroki dla Claude Code
+
+Przed rozpoczęciem pracy przeczytaj:
+
+```
+Przeczytaj CLAUDE.md, CONTEXT.md i LESSONS_LEARNED.md — kontynuujemy ZelaznaCRM.
+```
 
 ---
 
