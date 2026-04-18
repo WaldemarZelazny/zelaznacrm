@@ -10,7 +10,7 @@ from decimal import Decimal
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Sum
+from django.db.models import Count, OuterRef, Q, Subquery, Sum
 from django.db.models.functions import TruncMonth
 from django.views.generic import ListView, TemplateView
 
@@ -197,22 +197,44 @@ class SalesReportView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         logger.debug("SalesReportView: budowanie raportu sprzedazowego")
 
+        # Subquery dla Sum aby uniknąć mnożenia wierszy przy wielu JOIN-ach.
+        deals_value_sq = (
+            Deal.objects.filter(
+                owner=OuterRef("pk"),
+                status=Deal.Status.AKTYWNA,
+            )
+            .values("owner")
+            .annotate(s=Sum("value"))
+            .values("s")
+        )
+
+        # Jedno zapytanie z annotate zamiast 4×N zapytań w pętli.
         handlowcy = (
             User.objects.filter(profile__role=UserProfile.Role.HANDLOWIEC)
             .select_related("profile")
+            .annotate(
+                total_leads=Count("owned_leads", distinct=True),
+                won_leads=Count(
+                    "owned_leads",
+                    filter=Q(owned_leads__status=Lead.Status.WYGRANA),
+                    distinct=True,
+                ),
+                total_deals=Count("owned_deals", distinct=True),
+                deals_value=Subquery(deals_value_sq),
+            )
             .order_by("last_name", "first_name")
+        )
+        logger.debug(
+            "SalesReportView: zaladowano %d handlowcow (1 zapytanie SQL)",
+            handlowcy.count(),
         )
 
         rows = []
         for user in handlowcy:
-            leads_total = Lead.objects.filter(owner=user).count()
-            leads_won = Lead.objects.filter(
-                owner=user, status=Lead.Status.WYGRANA
-            ).count()
-            deals_total = Deal.objects.filter(owner=user).count()
-            deals_value = Deal.objects.filter(owner=user).aggregate(total=Sum("value"))[
-                "total"
-            ] or Decimal("0")
+            leads_total = user.total_leads
+            leads_won = user.won_leads
+            deals_total = user.total_deals
+            deals_value = user.deals_value or Decimal("0")
             conversion = (
                 round(leads_won / leads_total * 100, 1) if leads_total > 0 else 0.0
             )
