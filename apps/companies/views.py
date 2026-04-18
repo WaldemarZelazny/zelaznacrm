@@ -7,6 +7,7 @@ import logging
 
 import requests
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -173,12 +174,17 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class NipLookupView(LoginRequiredMixin, View):
-    """Pobiera dane firmy z Białej Listy MF na podstawie NIP.
+    """Pobiera dane firmy na podstawie NIP.
+
+    Kolejność źródeł:
+    1. CEIDG (dane.biznes.gov.pl) — gdy CEIDG_API_TOKEN ustawiony w .env
+    2. Biała Lista MF (wl-api.mf.gov.pl) — fallback, bezpłatny, bez tokenu
 
     GET /companies/nip-lookup/?nip=XXXXXXXXXX
-    Zwraca JSON: {name, address, city, postal_code} lub {error: "..."}
+    Zwraca JSON: {name, address, city, postal_code, source} lub {error: "..."}
     """
 
+    CEIDG_API_URL = "https://dane.biznes.gov.pl/api/ceidg/v2/firma?nip={nip}"
     MF_API_URL = "https://wl-api.mf.gov.pl/api/search/nip/{nip}?date={date}"
     TIMEOUT = 5
 
@@ -189,17 +195,101 @@ class NipLookupView(LoginRequiredMixin, View):
                 {"error": "Nieprawidłowy NIP (wymagane 10 cyfr)."}, status=400
             )
 
+        ceidg_token = getattr(settings, "CEIDG_API_TOKEN", "").strip()
+        if ceidg_token:
+            result = self._lookup_ceidg(nip, ceidg_token)
+            if result is not None:
+                result["source"] = "CEIDG"
+                return JsonResponse(result)
+            logger.info("NipLookupView: CEIDG nie zwróciło danych, fallback na MF")
+
+        return self._lookup_mf(nip)
+
+    # ------------------------------------------------------------------
+    # CEIDG
+    # ------------------------------------------------------------------
+
+    def _lookup_ceidg(self, nip: str, token: str) -> dict | None:
+        """Odpytuje CEIDG API. Zwraca słownik danych lub None przy błędzie."""
+        url = self.CEIDG_API_URL.format(nip=nip)
+        try:
+            resp = requests.get(
+                url,
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=self.TIMEOUT,
+            )
+        except requests.RequestException as exc:
+            logger.warning("NipLookupView CEIDG: błąd połączenia: %s", exc)
+            return None
+
+        if resp.status_code != 200:
+            logger.warning(
+                "NipLookupView CEIDG: status %s dla NIP %s", resp.status_code, nip
+            )
+            return None
+
+        try:
+            data = resp.json()
+        except ValueError:
+            logger.warning("NipLookupView CEIDG: błąd parsowania JSON")
+            return None
+
+        # CEIDG zwraca listę wpisów lub obiekt z kluczem "firma"/"wpisy"
+        firms = (
+            data if isinstance(data, list) else data.get("wpisy", data.get("firma", []))
+        )
+        if isinstance(firms, dict):
+            firms = [firms]
+        if not firms:
+            return None
+
+        firm = firms[0]
+        name = firm.get("nazwa", "") or firm.get("imie", "") + " " + firm.get(
+            "nazwisko", ""
+        )
+        adres = firm.get("adresDzialalnosci", firm.get("adresZamieszkania", {}))
+        street = " ".join(
+            filter(
+                None,
+                [
+                    adres.get("ulica", ""),
+                    adres.get("nrDomu", ""),
+                    adres.get("nrLokalu", ""),
+                ],
+            )
+        )
+        if not street:
+            street = adres.get("ulica", "")
+        city = adres.get("miejscowosc", "")
+        postal_code = adres.get("kodPocztowy", "")
+
+        if not name and not city:
+            return None
+
+        return {
+            "name": name.strip(),
+            "address": street.strip(),
+            "city": city,
+            "postal_code": postal_code,
+        }
+
+    # ------------------------------------------------------------------
+    # Biała Lista MF (fallback)
+    # ------------------------------------------------------------------
+
+    def _lookup_mf(self, nip: str):
+        """Odpytuje Białą Listę MF i zwraca JsonResponse."""
         today = datetime.date.today().isoformat()
         url = self.MF_API_URL.format(nip=nip, date=today)
         try:
             resp = requests.get(url, timeout=self.TIMEOUT)
         except requests.Timeout:
-            logger.warning("NipLookupView: timeout dla NIP %s", nip)
+            logger.warning("NipLookupView MF: timeout dla NIP %s", nip)
             return JsonResponse(
                 {"error": "Serwis MF nie odpowiedział (timeout)."}, status=504
             )
         except requests.RequestException as exc:
-            logger.error("NipLookupView: błąd połączenia dla NIP %s: %s", nip, exc)
+            logger.error("NipLookupView MF: błąd połączenia dla NIP %s: %s", nip, exc)
             return JsonResponse({"error": "Błąd połączenia z serwisem MF."}, status=502)
 
         if resp.status_code == 404:
@@ -208,7 +298,7 @@ class NipLookupView(LoginRequiredMixin, View):
             )
         if resp.status_code != 200:
             logger.warning(
-                "NipLookupView: MF zwróciło %s dla NIP %s", resp.status_code, nip
+                "NipLookupView MF: status %s dla NIP %s", resp.status_code, nip
             )
             return JsonResponse({"error": "Serwis MF zwrócił błąd."}, status=502)
 
@@ -223,10 +313,10 @@ class NipLookupView(LoginRequiredMixin, View):
             )
 
         name = subject.get("name", "")
-        working_address = subject.get("workingAddress", "") or subject.get(
+        raw_address = subject.get("workingAddress", "") or subject.get(
             "residenceAddress", ""
         )
-        city, postal_code, address = self._parse_address(working_address)
+        city, postal_code, address = self._parse_mf_address(raw_address)
 
         return JsonResponse(
             {
@@ -234,11 +324,12 @@ class NipLookupView(LoginRequiredMixin, View):
                 "address": address,
                 "city": city,
                 "postal_code": postal_code,
+                "source": "MF",
             }
         )
 
     @staticmethod
-    def _parse_address(raw: str) -> tuple[str, str, str]:
+    def _parse_mf_address(raw: str) -> tuple[str, str, str]:
         """Parsuje adres MF w formacie 'ul. Przykładowa 1, 00-000 Miasto'.
 
         Returns:
