@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import datetime
+import json
 import logging
+from urllib.parse import urlencode
 
 import requests
 
@@ -13,7 +15,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
 from django.http import JsonResponse
-from django.urls import reverse_lazy
+from django.shortcuts import redirect
+from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import (
     CreateView,
@@ -108,12 +111,24 @@ class CompanyDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
+_PREFILL_FIELDS = ("nip", "name", "address", "city", "postal_code")
+
+
 class CompanyCreateView(LoginRequiredMixin, CreateView):
     """Widok tworzenia nowej firmy. Owner ustawiany automatycznie."""
 
     model = Company
     form_class = CompanyForm
     template_name = "companies/company_form.html"
+
+    def get_initial(self) -> dict:
+        """Wstępnie wypełnia formularz danymi z parametrów GET (po lookup NIP)."""
+        initial = super().get_initial()
+        for field in _PREFILL_FIELDS:
+            val = self.request.GET.get(field, "").strip()
+            if val:
+                initial[field] = val
+        return initial
 
     def form_valid(self, form):
         form.instance.owner = self.request.user
@@ -142,6 +157,15 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
     model = Company
     form_class = CompanyForm
     template_name = "companies/company_form.html"
+
+    def get_initial(self) -> dict:
+        """Nadpisuje pola danymi z GET gdy użyto lookup NIP."""
+        initial = super().get_initial()
+        for field in _PREFILL_FIELDS:
+            val = self.request.GET.get(field, "").strip()
+            if val:
+                initial[field] = val
+        return initial
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
@@ -190,20 +214,47 @@ class NipLookupView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         nip = request.GET.get("nip", "").strip().replace("-", "").replace(" ", "")
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        next_url = request.GET.get("next", reverse("companies:create"))
+
         if not nip.isdigit() or len(nip) != 10:
-            return JsonResponse(
-                {"error": "Nieprawidłowy NIP (wymagane 10 cyfr)."}, status=400
-            )
+            if is_ajax:
+                return JsonResponse(
+                    {"error": "Nieprawidłowy NIP (wymagane 10 cyfr)."}, status=400
+                )
+            messages.error(request, "Nieprawidłowy NIP — wpisz 10 cyfr.")
+            return redirect(next_url)
 
         ceidg_token = getattr(settings, "CEIDG_API_TOKEN", "").strip()
+        data = None
         if ceidg_token:
-            result = self._lookup_ceidg(nip, ceidg_token)
-            if result is not None:
-                result["source"] = "CEIDG"
-                return JsonResponse(result)
-            logger.info("NipLookupView: CEIDG nie zwróciło danych, fallback na MF")
+            data = self._lookup_ceidg(nip, ceidg_token)
+            if data is not None:
+                data["source"] = "CEIDG"
+            else:
+                logger.info("NipLookupView: CEIDG nie zwróciło danych, fallback na MF")
 
-        return self._lookup_mf(nip)
+        if data is None:
+            mf_response = self._lookup_mf(nip)
+            if is_ajax:
+                return mf_response
+            # Dekoduj JsonResponse do słownika
+            mf_data = json.loads(mf_response.content)
+            if mf_response.status_code != 200:
+                messages.error(request, mf_data.get("error", "Nie znaleziono firmy."))
+                return redirect(next_url)
+            data = mf_data
+
+        if is_ajax:
+            return JsonResponse(data)
+
+        # Redirect z danymi jako parametry GET — CompanyCreateView.get_initial() je odbierze
+        params = {"nip": nip}
+        for field in ("name", "address", "city", "postal_code"):
+            val = data.get(field, "")
+            if val:
+                params[field] = val
+        return redirect(f"{next_url}?{urlencode(params)}")
 
     # ------------------------------------------------------------------
     # CEIDG

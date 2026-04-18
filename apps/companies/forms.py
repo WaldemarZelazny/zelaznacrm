@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, Column, Div, Field, Layout, Row, Submit
+from crispy_forms.layout import Column, Div, Field, Layout, Row, Submit
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -35,9 +35,6 @@ class CompanyForm(forms.ModelForm):
         ]
         widgets = {
             "notes": forms.Textarea(attrs={"rows": 3}),
-            "nip": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "np. 1234567890"}
-            ),
         }
 
     def __init__(self, *args, **kwargs) -> None:
@@ -61,26 +58,7 @@ class CompanyForm(forms.ModelForm):
                 ),
                 Row(
                     Column(
-                        HTML(
-                            """
-                            <div class="mb-3">
-                              <label for="id_nip" class="form-label">NIP</label>
-                              <div class="input-group">
-                                {{ form.nip }}
-                                <button type="button" id="nip-lookup-btn"
-                                        class="btn btn-secondary"
-                                        title="Pobierz dane firmy z bazy CEIDG / MF">
-                                  &#128269; Pobierz dane
-                                </button>
-                              </div>
-                              {% if form.nip.errors %}
-                              <div class="text-danger small mt-1">{{ form.nip.errors.0 }}</div>
-                              {% endif %}
-                              <div id="nip-alert" class="d-none mt-1"></div>
-                            </div>
-                        """
-                        ),
-                        css_class="col-md-4",
+                        Field("nip", css_class="form-control"), css_class="col-md-4"
                     ),
                     Column(
                         Field("phone", css_class="form-control"), css_class="col-md-4"

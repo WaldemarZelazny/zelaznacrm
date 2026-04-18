@@ -23,6 +23,30 @@
         {% endif %}
       </div>
 
+      <!-- Sekcja: Wyszukiwanie po NIP -->
+      <div class="card mb-3">
+        <div class="card-body">
+          <h4 class="card-title mb-3">Wyszukaj firmę po NIP</h4>
+          <form method="get" action="{% url 'companies:nip_lookup' %}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <div class="mb-2">
+              <label for="nip-search" class="form-label">NIP firmy</label>
+              <input type="text" id="nip-search" name="nip"
+                     class="form-control" style="max-width: 260px;"
+                     placeholder="np. 5261040828" maxlength="13"
+                     value="{{ request.GET.nip|default:'' }}">
+              <div class="form-text">
+                Wpisz NIP i kliknij przycisk — formularz wypełni się automatycznie.
+              </div>
+            </div>
+            <button type="submit" class="btn btn-secondary">
+              Pobierz dane firmy z bazy CEIDG / MF
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Karta formularza -->
       <div class="card shadow-sm">
         <div class="card-header">
           <h3 class="card-title">{{ form_title }}</h3>
@@ -36,75 +60,4 @@
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-(function () {
-  var NIP_LOOKUP_URL = "{% url 'companies:nip_lookup' %}";
-
-  var nipField = document.getElementById("id_nip");
-  var btn      = document.getElementById("nip-lookup-btn");
-  var alertEl  = document.getElementById("nip-alert");
-
-  if (!nipField || !btn) return;
-
-  function showAlert(msg, type) {
-    alertEl.className = "alert alert-" + type + " mt-1 mb-0 py-2 small";
-    alertEl.textContent = msg;
-  }
-
-  function setLoading(active) {
-    btn.disabled = active;
-    btn.innerHTML = active
-      ? '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Pobieranie\u2026'
-      : "&#128269; Pobierz dane";
-  }
-
-  function fill(id, val) {
-    var el = document.getElementById(id);
-    if (el) el.value = val;
-  }
-
-  btn.addEventListener("click", function () {
-    var nip = nipField.value.replace(/[-\s]/g, "");
-    if (nip.length !== 10 || !/^\d+$/.test(nip)) {
-      showAlert("Podaj prawidłowy NIP (10 cyfr).", "warning");
-      return;
-    }
-
-    alertEl.className = "d-none";
-    setLoading(true);
-
-    fetch(NIP_LOOKUP_URL + "?nip=" + encodeURIComponent(nip), {
-      headers: { "X-Requested-With": "XMLHttpRequest" },
-    })
-      .then(function (r) {
-        return r.json().then(function (d) { return { ok: r.ok, data: d }; });
-      })
-      .then(function (res) {
-        setLoading(false);
-        if (!res.ok) {
-          showAlert(res.data.error || "Nie znaleziono firmy.", "warning");
-          return;
-        }
-        var d = res.data;
-        fill("id_name",        d.name        || "");
-        fill("id_address",     d.address     || "");
-        fill("id_city",        d.city        || "");
-        fill("id_postal_code", d.postal_code || "");
-        var src = d.source === "CEIDG" ? "CEIDG" : "Białej Listy MF";
-        showAlert("Dane uzupełnione z bazy " + src + ".", "success");
-      })
-      .catch(function () {
-        setLoading(false);
-        showAlert("Błąd połączenia. Spróbuj ponownie.", "danger");
-      });
-  });
-
-  nipField.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") { e.preventDefault(); btn.click(); }
-  });
-})();
-</script>
 {% endblock %}

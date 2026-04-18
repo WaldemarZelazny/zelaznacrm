@@ -368,6 +368,11 @@ class NipLookupAuthTest(TestCase):
         self.assertIn("/accounts/login/", response["Location"])
 
 
+def _ajax_get(client, url):
+    """Wysyła żądanie GET z nagłówkiem AJAX (wymaga JSON zamiast redirect)."""
+    return client.get(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+
+
 class NipLookupValidationTest(TestCase):
     """Walidacja parametru NIP przed wywołaniem API."""
 
@@ -376,15 +381,15 @@ class NipLookupValidationTest(TestCase):
         self.client.force_login(self.user)
 
     def test_missing_nip_returns_400(self) -> None:
-        response = self.client.get(NIP_LOOKUP_URL)
+        response = _ajax_get(self.client, NIP_LOOKUP_URL)
         self.assertEqual(response.status_code, 400)
 
     def test_too_short_nip_returns_400(self) -> None:
-        response = self.client.get(NIP_LOOKUP_URL + "?nip=123")
+        response = _ajax_get(self.client, NIP_LOOKUP_URL + "?nip=123")
         self.assertEqual(response.status_code, 400)
 
     def test_non_digit_nip_returns_400(self) -> None:
-        response = self.client.get(NIP_LOOKUP_URL + "?nip=ABCDEFGHIJ")
+        response = _ajax_get(self.client, NIP_LOOKUP_URL + "?nip=ABCDEFGHIJ")
         self.assertEqual(response.status_code, 400)
 
     def test_nip_with_dashes_accepted(self) -> None:
@@ -393,7 +398,7 @@ class NipLookupValidationTest(TestCase):
             "apps.companies.views.requests.get",
             return_value=_mock_mf_response(),
         ):
-            response = self.client.get(NIP_LOOKUP_URL + "?nip=123-456-78-90")
+            response = _ajax_get(self.client, NIP_LOOKUP_URL + "?nip=123-456-78-90")
         # 10 cyfr po usunięciu myślników – walidacja przechodzi
         self.assertNotEqual(response.status_code, 400)
 
@@ -407,7 +412,7 @@ class NipLookupSuccessTest(TestCase):
 
     @patch("apps.companies.views.requests.get", return_value=_mock_mf_response())
     def test_returns_200_with_company_data(self, mock_get) -> None:
-        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        response = _ajax_get(self.client, NIP_LOOKUP_URL + "?nip=1234567890")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertEqual(data["name"], "ACME Sp. z o.o.")
@@ -446,7 +451,7 @@ class NipLookupErrorTest(TestCase):
         return_value=_mock_mf_response(status_code=404),
     )
     def test_mf_404_returns_404(self, mock_get) -> None:
-        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        response = _ajax_get(self.client, NIP_LOOKUP_URL + "?nip=1234567890")
         self.assertEqual(response.status_code, 404)
         self.assertIn("error", json.loads(response.content))
 
@@ -455,7 +460,7 @@ class NipLookupErrorTest(TestCase):
         side_effect=__import__("requests").Timeout,
     )
     def test_timeout_returns_504(self, mock_get) -> None:
-        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        response = _ajax_get(self.client, NIP_LOOKUP_URL + "?nip=1234567890")
         self.assertEqual(response.status_code, 504)
 
     @patch(
@@ -463,7 +468,7 @@ class NipLookupErrorTest(TestCase):
         side_effect=__import__("requests").RequestException("conn error"),
     )
     def test_request_exception_returns_502(self, mock_get) -> None:
-        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        response = _ajax_get(self.client, NIP_LOOKUP_URL + "?nip=1234567890")
         self.assertEqual(response.status_code, 502)
 
     @patch(
@@ -471,5 +476,5 @@ class NipLookupErrorTest(TestCase):
         return_value=_mock_mf_response(json_data={"result": {"subject": {}}}),
     )
     def test_empty_subject_returns_404(self, mock_get) -> None:
-        response = self.client.get(NIP_LOOKUP_URL + "?nip=1234567890")
+        response = _ajax_get(self.client, NIP_LOOKUP_URL + "?nip=1234567890")
         self.assertEqual(response.status_code, 404)
