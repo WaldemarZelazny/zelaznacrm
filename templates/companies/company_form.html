@@ -23,35 +23,18 @@
         {% endif %}
       </div>
 
-      <!-- Sekcja: Wyszukiwanie po NIP -->
-      <div class="card mb-3">
-        <div class="card-body">
-          <h4 class="card-title mb-3">Wyszukaj firmę po NIP</h4>
-          <form method="get" action="{% url 'companies:nip_lookup' %}">
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <div class="mb-2">
-              <label for="nip-search" class="form-label">NIP firmy</label>
-              <input type="text" id="nip-search" name="nip"
-                     class="form-control" style="max-width: 260px;"
-                     placeholder="np. 5261040828" maxlength="13"
-                     value="{{ request.GET.nip|default:'' }}">
-              <div class="form-text">
-                Wpisz NIP i kliknij przycisk — formularz wypełni się automatycznie.
-              </div>
-            </div>
-            <button type="submit" class="btn btn-secondary">
-              Pobierz dane firmy z bazy CEIDG / MF
-            </button>
-          </form>
-        </div>
-      </div>
-
       <!-- Karta formularza -->
       <div class="card shadow-sm">
         <div class="card-header">
           <h3 class="card-title">{{ form_title }}</h3>
         </div>
         <div class="card-body">
+          <div class="mb-3">
+            <a href="{% url 'companies:nip_search' %}?next={{ request.path }}"
+               class="btn btn-secondary">
+              Wyszukaj dane firmy po NIP
+            </a>
+          </div>
           <h4 class="text-muted small text-uppercase fw-bold mb-3">Dane podstawowe</h4>
           {% crispy form %}
         </div>

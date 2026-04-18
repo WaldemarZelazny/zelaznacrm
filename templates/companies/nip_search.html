@@ -1,0 +1,56 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Wyszukaj firmę po NIP{% endblock %}
+{% block page_title %}Wyszukaj firmę po NIP{% endblock %}
+{% block nav_companies %}active{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+
+      <div class="mb-3">
+        <a href="{% url 'companies:create' %}" class="text-muted small">
+          &larr; Dodaj firmę
+        </a>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h3 class="card-title">Wyszukaj firmę po NIP</h3>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            Wpisz NIP firmy — dane zostaną pobrane z bazy CEIDG lub Białej Listy MF
+            i automatycznie wypełnią formularz.
+          </p>
+
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next_url" value="{{ next_url }}">
+
+            <div class="mb-3">
+              <label for="nip-input" class="form-label fw-bold">NIP firmy</label>
+              <input type="text" id="nip-input" name="nip"
+                     class="form-control" style="max-width: 260px;"
+                     placeholder="np. 5261040828" maxlength="13"
+                     value="{{ nip }}" autofocus>
+              <div class="form-text">
+                Wpisz 10 cyfr NIP (myślniki są ignorowane).
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              Pobierz dane firmy
+            </button>
+            <a href="{{ next_url }}" class="btn btn-secondary ms-2">
+              Anuluj
+            </a>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

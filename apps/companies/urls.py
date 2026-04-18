@@ -11,6 +11,7 @@ app_name = "companies"
 urlpatterns = [
     path("", views.CompanyListView.as_view(), name="list"),
     path("nip-lookup/", views.NipLookupView.as_view(), name="nip_lookup"),
+    path("nip-search/", views.NipSearchView.as_view(), name="nip_search"),
     path("add/", views.CompanyCreateView.as_view(), name="create"),
     path("<int:pk>/", views.CompanyDetailView.as_view(), name="detail"),
     path("<int:pk>/edit/", views.CompanyUpdateView.as_view(), name="update"),

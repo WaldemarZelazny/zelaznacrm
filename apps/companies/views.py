@@ -15,7 +15,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
 from django.http import JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import (
@@ -228,14 +228,14 @@ class NipLookupView(LoginRequiredMixin, View):
         ceidg_token = getattr(settings, "CEIDG_API_TOKEN", "").strip()
         data = None
         if ceidg_token:
-            data = self._lookup_ceidg(nip, ceidg_token)
+            data = NipLookupView._lookup_ceidg(nip, ceidg_token)
             if data is not None:
                 data["source"] = "CEIDG"
             else:
                 logger.info("NipLookupView: CEIDG nie zwróciło danych, fallback na MF")
 
         if data is None:
-            mf_response = self._lookup_mf(nip)
+            mf_response = NipLookupView._lookup_mf(nip)
             if is_ajax:
                 return mf_response
             # Dekoduj JsonResponse do słownika
@@ -260,14 +260,15 @@ class NipLookupView(LoginRequiredMixin, View):
     # CEIDG
     # ------------------------------------------------------------------
 
-    def _lookup_ceidg(self, nip: str, token: str) -> dict | None:
+    @staticmethod
+    def _lookup_ceidg(nip: str, token: str) -> dict | None:
         """Odpytuje CEIDG API. Zwraca słownik danych lub None przy błędzie."""
-        url = self.CEIDG_API_URL.format(nip=nip)
+        url = NipLookupView.CEIDG_API_URL.format(nip=nip)
         try:
             resp = requests.get(
                 url,
                 headers={"Authorization": f"Bearer {token}"},
-                timeout=self.TIMEOUT,
+                timeout=NipLookupView.TIMEOUT,
             )
         except requests.RequestException as exc:
             logger.warning("NipLookupView CEIDG: błąd połączenia: %s", exc)
@@ -328,12 +329,13 @@ class NipLookupView(LoginRequiredMixin, View):
     # Biała Lista MF (fallback)
     # ------------------------------------------------------------------
 
-    def _lookup_mf(self, nip: str):
+    @staticmethod
+    def _lookup_mf(nip: str):
         """Odpytuje Białą Listę MF i zwraca JsonResponse."""
         today = datetime.date.today().isoformat()
-        url = self.MF_API_URL.format(nip=nip, date=today)
+        url = NipLookupView.MF_API_URL.format(nip=nip, date=today)
         try:
-            resp = requests.get(url, timeout=self.TIMEOUT)
+            resp = requests.get(url, timeout=NipLookupView.TIMEOUT)
         except requests.Timeout:
             logger.warning("NipLookupView MF: timeout dla NIP %s", nip)
             return JsonResponse(
@@ -374,7 +376,7 @@ class NipLookupView(LoginRequiredMixin, View):
         raw_address = subject.get("workingAddress", "") or subject.get(
             "residenceAddress", ""
         )
-        city, postal_code, address = self._parse_mf_address(raw_address)
+        city, postal_code, address = NipLookupView._parse_mf_address(raw_address)
 
         return JsonResponse(
             {
@@ -408,6 +410,66 @@ class NipLookupView(LoginRequiredMixin, View):
             else:
                 city = part.strip()
         return city, postal_code, street
+
+
+class NipSearchView(LoginRequiredMixin, View):
+    """Dedykowana strona wyszukiwania firmy po NIP.
+
+    GET  /companies/nip-search/?next=<url>  — formularz NIP
+    POST /companies/nip-search/             — odpytuje API i redirectuje z danymi
+    """
+
+    template_name = "companies/nip_search.html"
+
+    def get(self, request, *args, **kwargs):
+        return render(
+            request,
+            self.template_name,
+            {
+                "next_url": request.GET.get("next", reverse("companies:create")),
+                "nip": request.GET.get("nip", ""),
+            },
+        )
+
+    def post(self, request, *args, **kwargs):
+        nip = request.POST.get("nip", "").strip().replace("-", "").replace(" ", "")
+        next_url = request.POST.get("next_url", reverse("companies:create"))
+
+        if not nip.isdigit() or len(nip) != 10:
+            messages.error(request, "Nieprawidlowy NIP — wpisz 10 cyfr.")
+            return render(
+                request,
+                self.template_name,
+                {"next_url": next_url, "nip": nip},
+            )
+
+        ceidg_token = getattr(settings, "CEIDG_API_TOKEN", "").strip()
+        data = None
+        if ceidg_token:
+            data = NipLookupView._lookup_ceidg(nip, ceidg_token)
+            if data is not None:
+                data["source"] = "CEIDG"
+            else:
+                logger.info("NipSearchView: CEIDG brak danych, fallback na MF")
+
+        if data is None:
+            mf_response = NipLookupView._lookup_mf(nip)
+            mf_data = json.loads(mf_response.content)
+            if mf_response.status_code != 200:
+                messages.error(request, mf_data.get("error", "Nie znaleziono firmy."))
+                return render(
+                    request,
+                    self.template_name,
+                    {"next_url": next_url, "nip": nip},
+                )
+            data = mf_data
+
+        params = {"nip": nip}
+        for field in ("name", "address", "city", "postal_code"):
+            val = data.get(field, "")
+            if val:
+                params[field] = val
+        return redirect(f"{next_url}?{urlencode(params)}")
 
 
 class CompanyDeleteView(LoginRequiredMixin, DeleteView):
