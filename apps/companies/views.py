@@ -208,7 +208,7 @@ class NipLookupView(LoginRequiredMixin, View):
     Zwraca JSON: {name, address, city, postal_code, source} lub {error: "..."}
     """
 
-    CEIDG_API_URL = "https://dane.biznes.gov.pl/api/ceidg/v2/firma?nip={nip}"
+    CEIDG_API_URL = "https://dane.biznes.gov.pl/api/ceidg/v3/firmy?nip={nip}"
     MF_API_URL = "https://wl-api.mf.gov.pl/api/search/nip/{nip}?date={date}"
     TIMEOUT = 5
 
@@ -286,9 +286,11 @@ class NipLookupView(LoginRequiredMixin, View):
             logger.warning("NipLookupView CEIDG: błąd parsowania JSON")
             return None
 
-        # CEIDG zwraca listę wpisów lub obiekt z kluczem "firma"/"wpisy"
+        # v3: {"firmy": [...]}  v2: {"wpisy": [...]} lub lista
         firms = (
-            data if isinstance(data, list) else data.get("wpisy", data.get("firma", []))
+            data
+            if isinstance(data, list)
+            else data.get("firmy", data.get("wpisy", data.get("firma", [])))
         )
         if isinstance(firms, dict):
             firms = [firms]
@@ -296,24 +298,24 @@ class NipLookupView(LoginRequiredMixin, View):
             return None
 
         firm = firms[0]
-        name = firm.get("nazwa", "") or firm.get("imie", "") + " " + firm.get(
-            "nazwisko", ""
+        name = firm.get("nazwa", "") or (
+            firm.get("imie", "") + " " + firm.get("nazwisko", "")
         )
         adres = firm.get("adresDzialalnosci", firm.get("adresZamieszkania", {}))
+        # v3: budynek/lokal  v2: nrDomu/nrLokalu
         street = " ".join(
             filter(
                 None,
                 [
                     adres.get("ulica", ""),
-                    adres.get("nrDomu", ""),
-                    adres.get("nrLokalu", ""),
+                    adres.get("budynek", "") or adres.get("nrDomu", ""),
+                    adres.get("lokal", "") or adres.get("nrLokalu", ""),
                 ],
             )
         )
-        if not street:
-            street = adres.get("ulica", "")
-        city = adres.get("miejscowosc", "")
-        postal_code = adres.get("kodPocztowy", "")
+        # v3: miasto/kod  v2: miejscowosc/kodPocztowy
+        city = adres.get("miasto", "") or adres.get("miejscowosc", "")
+        postal_code = adres.get("kod", "") or adres.get("kodPocztowy", "")
 
         if not name and not city:
             return None
