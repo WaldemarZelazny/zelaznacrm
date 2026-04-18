@@ -29,24 +29,6 @@
         </div>
         <div class="card-body">
 
-          <!-- NIP lookup helper -->
-          <div class="mb-4 p-3 bg-light rounded border">
-            <label class="form-label fw-semibold mb-2">
-              Autouzupełnianie z NIP (CEIDG / Biała Lista MF)
-            </label>
-            <div class="input-group">
-              <input type="text" id="nip-lookup-input" class="form-control"
-                     placeholder="Wpisz NIP (10 cyfr)…" maxlength="13">
-              <button type="button" id="nip-lookup-btn" class="btn btn-primary">
-                <span id="nip-btn-text">Pobierz dane firmy</span>
-                <span id="nip-btn-spinner"
-                      class="spinner-border spinner-border-sm ms-1 d-none"
-                      role="status" aria-hidden="true"></span>
-              </button>
-            </div>
-            <div id="nip-alert" class="mt-2 d-none alert mb-0" role="alert"></div>
-          </div>
-
           <!-- Sekcja: Dane podstawowe -->
           <h4 class="text-muted small text-uppercase fw-bold mb-3">Dane podstawowe</h4>
           {% crispy form %}
@@ -64,23 +46,42 @@
 (function () {
   var NIP_LOOKUP_URL = "{% url 'companies:nip_lookup' %}";
 
-  var btn     = document.getElementById("nip-lookup-btn");
-  var input   = document.getElementById("nip-lookup-input");
-  var alertEl = document.getElementById("nip-alert");
+  /* Znajdź pole id_nip renderowane przez crispy forms */
+  var nipField = document.getElementById("id_nip");
+  if (!nipField) return;
+
+  /* Wstrzyknij input-group: opakuj pole NIP + dodaj przycisk */
+  var wrapper = document.createElement("div");
+  wrapper.className = "input-group";
+  nipField.parentNode.insertBefore(wrapper, nipField);
+  wrapper.appendChild(nipField);
+
+  var btn = document.createElement("button");
+  btn.type = "button";
+  btn.id = "nip-lookup-btn";
+  btn.className = "btn btn-secondary";
+  btn.innerHTML = '<span id="nip-btn-text">&#128269; Pobierz dane</span>' +
+    '<span id="nip-btn-spinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status" aria-hidden="true"></span>';
+  wrapper.appendChild(btn);
+
+  /* Alert pod polem NIP */
+  var alertEl = document.createElement("div");
+  alertEl.id = "nip-alert";
+  alertEl.className = "d-none";
+  wrapper.parentNode.insertBefore(alertEl, wrapper.nextSibling);
+
   var btnText = document.getElementById("nip-btn-text");
   var spinner = document.getElementById("nip-btn-spinner");
 
-  if (!btn || !input) return;
-
   function showAlert(msg, type) {
-    alertEl.className = "mt-2 alert alert-" + type + " mb-0";
+    alertEl.className = "alert alert-" + type + " mt-1 mb-0 py-2 small";
     alertEl.textContent = msg;
   }
 
   function setLoading(active) {
     btn.disabled = active;
     spinner.classList.toggle("d-none", !active);
-    btnText.textContent = active ? "Pobieranie…" : "Pobierz dane firmy";
+    btnText.innerHTML = active ? "Pobieranie\u2026" : "&#128269; Pobierz dane";
   }
 
   function fill(fieldId, value) {
@@ -89,13 +90,13 @@
   }
 
   btn.addEventListener("click", function () {
-    var nip = input.value.replace(/[-\s]/g, "");
+    var nip = nipField.value.replace(/[-\s]/g, "");
     if (nip.length !== 10 || !/^\d+$/.test(nip)) {
       showAlert("Podaj prawidłowy NIP (10 cyfr).", "warning");
       return;
     }
 
-    alertEl.className = "mt-2 alert d-none mb-0";
+    alertEl.className = "d-none";
     setLoading(true);
 
     fetch(NIP_LOOKUP_URL + "?nip=" + encodeURIComponent(nip), {
@@ -111,13 +112,12 @@
           return;
         }
         var d = res.data;
-        fill("id_nip",         nip);
         fill("id_name",        d.name        || "");
         fill("id_address",     d.address     || "");
         fill("id_city",        d.city        || "");
         fill("id_postal_code", d.postal_code || "");
         var src = d.source === "CEIDG" ? "CEIDG" : "Białej Listy MF";
-        showAlert("Dane firmy uzupełnione z bazy " + src + ".", "success");
+        showAlert("Dane uzupełnione z bazy " + src + ".", "success");
       })
       .catch(function () {
         setLoading(false);
@@ -125,8 +125,8 @@
       });
   });
 
-  /* Trigger przyciskiem po naciśnięciu Enter w polu NIP */
-  input.addEventListener("keydown", function (e) {
+  /* Enter w polu NIP triggeruje przycisk */
+  nipField.addEventListener("keydown", function (e) {
     if (e.key === "Enter") { e.preventDefault(); btn.click(); }
   });
 })();
