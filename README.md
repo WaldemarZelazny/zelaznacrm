@@ -183,6 +183,25 @@ DATABASE_URL=sqlite:///db.sqlite3
 
 ---
 
+## Rozwiązywanie problemów
+
+### Serwer serwuje stary kod (zmiany nie są widoczne)
+
+**Przyczyna:** Na porcie 8000 działa kilka starych procesów Django
+z poprzednich sesji. Nowe żądania trafiają do starego procesu.
+
+**Rozwiązanie:**
+
+1. Zabij wszystkie procesy Python:
+   - Windows: `taskkill /F /IM python.exe`
+   - macOS/Linux: `pkill -f "manage.py runserver"`
+2. Uruchom serwer ponownie: `python manage.py runserver`
+
+**Zapobieganie:** Zawsze zatrzymuj serwer przez Ctrl+C
+przed zamknięciem terminala.
+
+---
+
 ## Licencja
 
 Projekt akademicki — praca dyplomowa. Wszelkie prawa zastrzeżone.
