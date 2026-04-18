@@ -56,3 +56,19 @@ pre-commit naprawił plik i trzeba go ponownie zacommitować.
 ## 10. Testowanie zmian zawsze w trybie incognito
 **Zasada:** Przy problemach z wyświetlaniem zawsze najpierw
 sprawdź w oknie incognito (Ctrl+Shift+N) przed debugowaniem kodu.
+
+## 11. Używane skille Claude Code
+**Lokalizacja:** `.claude/skills/` — pliki `.md` z instrukcjami dla Claude Code.
+**Uwaga:** Repozytorium VoltAgent/awesome-agent-skills nie zawiera plików skill
+(tylko README/LICENSE) — skille zostały napisane ręcznie dla tego projektu.
+`npx skills add` nie jest prawdziwą komendą — skille to zwykłe pliki Markdown.
+
+| Skill | Plik | Kiedy używać |
+|---|---|---|
+| QA | `.claude/skills/garrytan-qa.md` | Przed każdym commitem nowej funkcji |
+| Ship | `.claude/skills/garrytan-ship.md` | Commit + push z dobrym komunikatem |
+| PDF | `.claude/skills/anthropics-pdf.md` | Generowanie dokumentów PDF (WeasyPrint) |
+| XLSX | `.claude/skills/anthropics-xlsx.md` | Eksport danych do Excela (openpyxl) |
+
+**Jak wywołać skill:**
+  "Użyj skilla garrytan-qa" lub "/skill garrytan-qa"

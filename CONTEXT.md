@@ -272,30 +272,20 @@ Hasło: rrup01012626
 
 ## 9. Agent Skills dla Claude Code
 
-Repozytorium skilli: https://github.com/VoltAgent/awesome-agent-skills
+Skills to pliki `.md` z instrukcjami w folderze `.claude/skills/`.
+Claude Code wczytuje je na żądanie ("użyj skilla X") i stosuje zawarte instrukcje.
 
-Skills to gotowe pliki instrukcji które Claude Code wczytuje przed konkretnym zadaniem.
-Przechowuj pobrane skille w folderze `.claude/skills/` w projekcie.
+> **Uwaga:** Repozytorium VoltAgent/awesome-agent-skills nie zawiera plików skill —
+> skille dla tego projektu zostały napisane ręcznie. `npx skills add` nie istnieje.
 
-### Skille użyte w projekcie
+### Dostępne skille projektu
 
-| Skill | Kiedy używać | Jak wywołać |
-|-------|-------------|-------------|
-| `openai/playwright-interactive` | Faza 1 – logowanie i scraping RRUP | "użyj skilla playwright-interactive" |
-| `openai/frontend-skill` | Faza 5 – landing page i szablony Tabler | "użyj skilla frontend-skill" |
-| `garrytan/qa` | Faza 6 – testowanie, znajdowanie bugów | "użyj skilla qa" |
-| `garrytan/ship` | Po każdym module – commit, push, PR | "użyj skilla ship" |
-| `garrytan/document-release` | Po każdej fazie – aktualizacja docs | "użyj skilla document-release" |
-
-### Jak pobrać skill przed użyciem
-```bash
-# Utwórz folder na skille
-mkdir -p .claude/skills
-
-# Pobierz konkretny skill (przykład dla playwright-interactive)
-curl -o .claude/skills/playwright-interactive.md \
-  https://raw.githubusercontent.com/VoltAgent/awesome-agent-skills/main/skills/openai/playwright-interactive.md
-```
+| Plik | Kiedy używać | Jak wywołać |
+|------|-------------|-------------|
+| `.claude/skills/garrytan-qa.md` | Przed commitem nowej funkcji — testy i weryfikacja | "użyj skilla qa" |
+| `.claude/skills/garrytan-ship.md` | Commit + push z dobrym komunikatem | "użyj skilla ship" |
+| `.claude/skills/anthropics-pdf.md` | Generowanie PDF (WeasyPrint) | "użyj skilla pdf" |
+| `.claude/skills/anthropics-xlsx.md` | Eksport danych do Excela (openpyxl) | "użyj skilla xlsx" |
 
 ---
 
