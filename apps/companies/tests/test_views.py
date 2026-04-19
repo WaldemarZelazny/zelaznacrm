@@ -478,3 +478,163 @@ class NipLookupErrorTest(TestCase):
     def test_empty_subject_returns_404(self, mock_get) -> None:
         response = _ajax_get(self.client, NIP_LOOKUP_URL + "?nip=1234567890")
         self.assertEqual(response.status_code, 404)
+
+
+# ---------------------------------------------------------------------------
+# Testy: NipSearchView
+# ---------------------------------------------------------------------------
+
+NIP_SEARCH_URL = reverse("companies:nip_search")
+
+_CEIDG_RESPONSE = {
+    "firmy": [
+        {
+            "nazwa": "Testowa JDG Jan Kowalski",
+            "adresDzialalnosci": {
+                "ulica": "ul. Przykładowa",
+                "budynek": "5",
+                "miasto": "Warszawa",
+                "kod": "00-001",
+            },
+        }
+    ]
+}
+
+
+def _mock_ceidg(status_code: int = 200, json_data: dict | None = None) -> MagicMock:
+    mock = MagicMock()
+    mock.status_code = status_code
+    mock.json.return_value = json_data if json_data is not None else _CEIDG_RESPONSE
+    return mock
+
+
+class NipSearchAuthTest(TestCase):
+    """Niezalogowani użytkownicy są przekierowywani."""
+
+    def test_get_redirect_anonymous(self) -> None:
+        response = self.client.get(NIP_SEARCH_URL)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+    def test_post_redirect_anonymous(self) -> None:
+        response = self.client.post(NIP_SEARCH_URL, {"nip": "1234567890"})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+
+class NipSearchGetTest(TestCase):
+    """GET /companies/nip-search/ zwraca formularz."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("tester", password="pass")
+        self.client.force_login(self.user)
+
+    def test_get_returns_200(self) -> None:
+        response = self.client.get(NIP_SEARCH_URL)
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_contains_form(self) -> None:
+        response = self.client.get(NIP_SEARCH_URL)
+        self.assertContains(response, 'name="nip"')
+        self.assertContains(response, 'method="post"')
+
+    def test_get_passes_next_url(self) -> None:
+        response = self.client.get(NIP_SEARCH_URL + "?next=/companies/add/")
+        self.assertContains(response, "/companies/add/")
+
+
+class NipSearchPostValidationTest(TestCase):
+    """Walidacja NIP w żądaniu POST."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("tester", password="pass")
+        self.client.force_login(self.user)
+
+    def test_post_invalid_nip_renders_form_with_error(self) -> None:
+        response = self.client.post(
+            NIP_SEARCH_URL, {"nip": "123", "next_url": "/companies/add/"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "NIP")
+
+    def test_post_empty_nip_renders_form(self) -> None:
+        response = self.client.post(
+            NIP_SEARCH_URL, {"nip": "", "next_url": "/companies/add/"}
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_non_digit_nip_renders_form(self) -> None:
+        response = self.client.post(
+            NIP_SEARCH_URL, {"nip": "ABCDEFGHIJ", "next_url": "/companies/add/"}
+        )
+        self.assertEqual(response.status_code, 200)
+
+
+class NipSearchPostMfTest(TestCase):
+    """POST z prawidłowym NIP — fallback na Białą Listę MF."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("tester", password="pass")
+        self.client.force_login(self.user)
+
+    def _post(self, nip: str = "1234567890") -> object:
+        return self.client.post(
+            NIP_SEARCH_URL, {"nip": nip, "next_url": "/companies/add/"}
+        )
+
+    @patch("apps.companies.views.requests.get", return_value=_mock_mf_response())
+    def test_valid_nip_redirects_with_data(self, mock_get) -> None:
+        response = self._post()
+        self.assertEqual(response.status_code, 302)
+        location = response["Location"]
+        self.assertIn("name=", location)
+        self.assertIn("1234567890", location)
+
+    @patch("apps.companies.views.requests.get", return_value=_mock_mf_response())
+    def test_redirect_target_is_next_url(self, mock_get) -> None:
+        response = self._post()
+        self.assertTrue(response["Location"].startswith("/companies/add/"))
+
+    @patch(
+        "apps.companies.views.requests.get",
+        return_value=_mock_mf_response(status_code=404),
+    )
+    def test_mf_404_shows_error_message(self, mock_get) -> None:
+        response = self._post()
+        self.assertEqual(response.status_code, 200)
+        messages = list(response.wsgi_request._messages)
+        self.assertTrue(any("znaleziono" in str(m).lower() for m in messages))
+
+
+class NipSearchPostCeidgTest(TestCase):
+    """POST z prawidłowym NIP — CEIDG jako źródło danych."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("tester", password="pass")
+        self.client.force_login(self.user)
+
+    @patch("apps.companies.views.requests.get", return_value=_mock_ceidg())
+    def test_ceidg_data_in_redirect(self, mock_get) -> None:
+        response = self.client.post(
+            NIP_SEARCH_URL, {"nip": "1234567890", "next_url": "/companies/add/"}
+        )
+        self.assertEqual(response.status_code, 302)
+        location = response["Location"]
+        self.assertIn("Testowa", location)
+        self.assertIn("Warszawa", location)
+
+    @patch("apps.companies.views.requests.get")
+    def test_ceidg_404_falls_back_to_mf(self, mock_get) -> None:
+        """Gdy CEIDG zwraca 404, widok odpytuje MF jako fallback."""
+
+        def side_effect(url, **kwargs):
+            if "ceidg" in url:
+                return _mock_ceidg(status_code=404)
+            return _mock_mf_response()
+
+        mock_get.side_effect = side_effect
+        response = self.client.post(
+            NIP_SEARCH_URL, {"nip": "1234567890", "next_url": "/companies/add/"}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertGreaterEqual(mock_get.call_count, 2)
