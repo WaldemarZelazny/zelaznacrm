@@ -15,4 +15,5 @@ urlpatterns = [
     path("<int:pk>/edit/", views.DocumentUpdateView.as_view(), name="update"),
     path("<int:pk>/delete/", views.DocumentDeleteView.as_view(), name="delete"),
     path("<int:pk>/download/", views.DocumentDownloadView.as_view(), name="download"),
+    path("<int:pk>/pdf/", views.DocumentPDFView.as_view(), name="pdf"),
 ]

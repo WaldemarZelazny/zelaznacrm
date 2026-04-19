@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ document.title }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 2cm 2.5cm;
+    }
+
+    body {
+      font-family: "DejaVu Sans", Arial, sans-serif;
+      font-size: 10pt;
+      color: #333;
+      line-height: 1.5;
+    }
+
+    .header {
+      border-bottom: 2px solid #206bc4;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 18pt;
+      color: #206bc4;
+      margin: 0 0 4px;
+    }
+
+    .header .doc-type {
+      font-size: 10pt;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section {
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+
+    table.info {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    table.info td {
+      padding: 4px 6px;
+      vertical-align: top;
+    }
+
+    table.info td.label {
+      width: 35%;
+      color: #666;
+      font-size: 9pt;
+    }
+
+    table.info td.value {
+      font-weight: 500;
+    }
+
+    .description-box {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      padding: 10px 12px;
+      font-size: 9.5pt;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 1cm;
+      left: 2.5cm;
+      right: 2.5cm;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 6px;
+      font-size: 8pt;
+      color: #aaa;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #e8f0fb;
+      color: #206bc4;
+      border-radius: 3px;
+      font-size: 9pt;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="doc-type">{{ document.get_doc_type_display }}</div>
+    <h1>{{ document.title }}</h1>
+  </div>
+
+  <!-- Dane dokumentu -->
+  <div class="section">
+    <div class="section-title">Dane dokumentu</div>
+    <table class="info">
+      <tr>
+        <td class="label">Rodzaj:</td>
+        <td class="value">
+          <span class="badge">{{ document.get_doc_type_display }}</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="label">Data wgrania:</td>
+        <td class="value">{{ document.created_at|date:"d.m.Y H:i" }}</td>
+      </tr>
+      <tr>
+        <td class="label">Ostatnia modyfikacja:</td>
+        <td class="value">{{ document.updated_at|date:"d.m.Y H:i" }}</td>
+      </tr>
+      <tr>
+        <td class="label">Wgrał:</td>
+        <td class="value">
+          {% if document.created_by %}
+            {{ document.created_by.get_full_name|default:document.created_by.username }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Firma -->
+  {% if document.company %}
+  <div class="section">
+    <div class="section-title">Firma</div>
+    <table class="info">
+      <tr>
+        <td class="label">Nazwa:</td>
+        <td class="value">{{ document.company.name }}</td>
+      </tr>
+      {% if document.company.nip %}
+      <tr>
+        <td class="label">NIP:</td>
+        <td class="value">{{ document.company.nip }}</td>
+      </tr>
+      {% endif %}
+      {% if document.company.address or document.company.city %}
+      <tr>
+        <td class="label">Adres:</td>
+        <td class="value">
+          {% if document.company.address %}{{ document.company.address }},{% endif %}
+          {% if document.company.postal_code %}{{ document.company.postal_code }}{% endif %}
+          {% if document.company.city %}{{ document.company.city }}{% endif %}
+        </td>
+      </tr>
+      {% endif %}
+      {% if document.company.phone %}
+      <tr>
+        <td class="label">Telefon:</td>
+        <td class="value">{{ document.company.phone }}</td>
+      </tr>
+      {% endif %}
+      {% if document.company.email %}
+      <tr>
+        <td class="label">E-mail:</td>
+        <td class="value">{{ document.company.email }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Lead -->
+  {% if document.lead %}
+  <div class="section">
+    <div class="section-title">Lead</div>
+    <table class="info">
+      <tr>
+        <td class="label">Tytuł:</td>
+        <td class="value">{{ document.lead.title }}</td>
+      </tr>
+      <tr>
+        <td class="label">Status:</td>
+        <td class="value">{{ document.lead.get_status_display }}</td>
+      </tr>
+      {% if document.lead.value %}
+      <tr>
+        <td class="label">Wartość:</td>
+        <td class="value">{{ document.lead.value }} PLN</td>
+      </tr>
+      {% endif %}
+      <tr>
+        <td class="label">Opiekun:</td>
+        <td class="value">
+          {% if document.lead.owner %}
+            {{ document.lead.owner.get_full_name|default:document.lead.owner.username }}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Umowa -->
+  {% if document.deal %}
+  <div class="section">
+    <div class="section-title">Umowa</div>
+    <table class="info">
+      <tr>
+        <td class="label">Tytuł:</td>
+        <td class="value">{{ document.deal.title }}</td>
+      </tr>
+      <tr>
+        <td class="label">Status:</td>
+        <td class="value">{{ document.deal.get_status_display }}</td>
+      </tr>
+      {% if document.deal.value %}
+      <tr>
+        <td class="label">Wartość:</td>
+        <td class="value">{{ document.deal.value }} PLN</td>
+      </tr>
+      {% endif %}
+      {% if document.deal.close_date %}
+      <tr>
+        <td class="label">Data zamknięcia:</td>
+        <td class="value">{{ document.deal.close_date|date:"d.m.Y" }}</td>
+      </tr>
+      {% endif %}
+      <tr>
+        <td class="label">Opiekun:</td>
+        <td class="value">
+          {% if document.deal.owner %}
+            {{ document.deal.owner.get_full_name|default:document.deal.owner.username }}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Opis -->
+  {% if document.description %}
+  <div class="section">
+    <div class="section-title">Opis / komentarz</div>
+    <div class="description-box">{{ document.description }}</div>
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    Wygenerowano automatycznie — ZelaznaCRM &nbsp;|&nbsp;
+    {{ document.title }} &nbsp;|&nbsp;
+    Strona <pdf:pagenumber /> z <pdf:pagecount />
+  </div>
+
+</body>
+</html>

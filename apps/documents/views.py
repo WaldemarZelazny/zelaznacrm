@@ -1,4 +1,4 @@
-"""Widoki aplikacji documents – CRUD i pobieranie plikow."""
+"""Widoki aplikacji documents – CRUD, pobieranie plikow i generowanie PDF."""
 
 from __future__ import annotations
 
@@ -9,8 +9,9 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import (
@@ -282,6 +283,46 @@ class DocumentDownloadView(LoginRequiredMixin, View):
         response = FileResponse(file_handle, as_attachment=True, filename=filename)
         logger.info(
             "Uzytkownik %s pobral dokument: %s (id=%s)",
+            request.user.username,
+            doc.title,
+            doc.pk,
+        )
+        return response
+
+
+class DocumentPDFView(LoginRequiredMixin, View):
+    """Generuje i zwraca kartę dokumentu jako PDF (WeasyPrint).
+
+    GET /documents/<pk>/pdf/
+    Renderuje szablon document_pdf.html do HTML, konwertuje przez WeasyPrint
+    i zwraca plik PDF jako załącznik do pobrania.
+    Dostęp: każdy zalogowany użytkownik (tak jak DocumentDetailView).
+    """
+
+    def get(self, request, pk):
+        """Generuje PDF i zwraca jako HttpResponse z Content-Type application/pdf."""
+        import weasyprint  # lazy — biblioteka wymaga GTK (nie dostepne w testach)
+
+        doc = get_object_or_404(
+            Document.objects.select_related("company", "lead", "deal", "created_by"),
+            pk=pk,
+        )
+        if not _is_admin(request.user) and doc.created_by != request.user:
+            raise PermissionDenied("Mozesz pobierac PDF tylko dla swoich dokumentow.")
+
+        html_string = render_to_string(
+            "documents/document_pdf.html",
+            {"document": doc, "request": request},
+        )
+        pdf_bytes = weasyprint.HTML(string=html_string).write_pdf()
+
+        filename = f"dokument_{doc.pk}_{doc.title[:40]}.pdf"
+        filename = filename.replace(" ", "_")
+
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        logger.info(
+            "Uzytkownik %s wygenenowal PDF dla dokumentu: %s (id=%s)",
             request.user.username,
             doc.title,
             doc.pk,

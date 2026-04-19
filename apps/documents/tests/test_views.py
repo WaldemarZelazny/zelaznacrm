@@ -487,3 +487,102 @@ class DocumentDownloadViewTest(TestCase):
         self.client.force_login(self.other)
         response = self.client.get(reverse("documents:download", kwargs={"pk": doc.pk}))
         self.assertEqual(response.status_code, 200)
+
+
+# ---------------------------------------------------------------------------
+# DocumentPDFView
+# ---------------------------------------------------------------------------
+
+import sys  # noqa: E402
+from unittest.mock import MagicMock  # noqa: E402
+
+PDF_URL = "documents:pdf"
+_MOCK_PDF_BYTES = b"%PDF-1.4 mock-pdf-content"
+
+
+def _weasyprint_patch():
+    """Zwraca patch zastepujacy modul WeasyPrint falszywymi bajtami PDF.
+
+    WeasyPrint wymaga bibliotek systemowych GTK (libgobject), ktore nie sa
+    dostepne w tym srodowisku Windows. Import jest leniwy w widoku, wiec
+    wstrzykujemy mock do sys.modules przed kazda probą importu.
+    """
+    mock_wp = MagicMock()
+    mock_wp.HTML.return_value.write_pdf.return_value = _MOCK_PDF_BYTES
+    return __import__("unittest.mock", fromlist=["patch"]).patch.dict(
+        sys.modules, {"weasyprint": mock_wp}
+    )
+
+
+class DocumentPDFAuthTest(TestCase):
+    """Testy uwierzytelniania DocumentPDFView."""
+
+    def setUp(self) -> None:
+        self.user = _make_user("pdf_user")
+        self.doc = _make_document("Karta PDF", created_by=self.user)
+
+    def test_pdf_redirect_anonymous(self) -> None:
+        """Anonimowy uzytkownik jest przekierowywany do logowania."""
+        with _weasyprint_patch():
+            response = self.client.get(reverse(PDF_URL, kwargs={"pk": self.doc.pk}))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+    def test_pdf_returns_403_for_other_user(self) -> None:
+        """Inny handlowiec (nie tworca) otrzymuje 403."""
+        other = _make_user("pdf_other")
+        self.client.force_login(other)
+        with _weasyprint_patch():
+            response = self.client.get(reverse(PDF_URL, kwargs={"pk": self.doc.pk}))
+        self.assertEqual(response.status_code, 403)
+
+
+class DocumentPDFGenerateTest(TestCase):
+    """Testy generowania PDF przez DocumentPDFView."""
+
+    def setUp(self) -> None:
+        self.user = _make_user("pdf_gen")
+        self.admin = _make_user("pdf_admin", role=UserProfile.Role.ADMIN)
+        self.doc = _make_document("Oferta Testowa", created_by=self.user)
+
+    def test_pdf_returns_200_for_creator(self) -> None:
+        """Tworca dokumentu otrzymuje odpowiedz 200."""
+        self.client.force_login(self.user)
+        with _weasyprint_patch():
+            response = self.client.get(reverse(PDF_URL, kwargs={"pk": self.doc.pk}))
+        self.assertEqual(response.status_code, 200)
+
+    def test_pdf_content_type(self) -> None:
+        """Odpowiedz ma Content-Type application/pdf."""
+        self.client.force_login(self.user)
+        with _weasyprint_patch():
+            response = self.client.get(reverse(PDF_URL, kwargs={"pk": self.doc.pk}))
+        self.assertEqual(response["Content-Type"], "application/pdf")
+
+    def test_pdf_content_disposition_is_attachment(self) -> None:
+        """Odpowiedz zawiera naglowek Content-Disposition z attachment."""
+        self.client.force_login(self.user)
+        with _weasyprint_patch():
+            response = self.client.get(reverse(PDF_URL, kwargs={"pk": self.doc.pk}))
+        self.assertIn("attachment", response["Content-Disposition"])
+
+    def test_pdf_returns_pdf_bytes(self) -> None:
+        """Tresc odpowiedzi zaczyna sie od sygnatury %PDF (mock)."""
+        self.client.force_login(self.user)
+        with _weasyprint_patch():
+            response = self.client.get(reverse(PDF_URL, kwargs={"pk": self.doc.pk}))
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_pdf_accessible_by_admin(self) -> None:
+        """ADMIN moze pobrac PDF dowolnego dokumentu."""
+        self.client.force_login(self.admin)
+        with _weasyprint_patch():
+            response = self.client.get(reverse(PDF_URL, kwargs={"pk": self.doc.pk}))
+        self.assertEqual(response.status_code, 200)
+
+    def test_pdf_returns_404_for_nonexistent(self) -> None:
+        """Nieistniejacy dokument zwraca 404."""
+        self.client.force_login(self.admin)
+        with _weasyprint_patch():
+            response = self.client.get(reverse(PDF_URL, kwargs={"pk": 999999}))
+        self.assertEqual(response.status_code, 404)

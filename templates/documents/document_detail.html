@@ -15,6 +15,9 @@
     <a href="{% url 'documents:download' document.pk %}" class="btn btn-success btn-sm">
       Pobierz plik
     </a>
+    <a href="{% url 'documents:pdf' document.pk %}" class="btn btn-outline-primary btn-sm">
+      Pobierz PDF
+    </a>
     {% if can_edit %}
     <a href="{% url 'documents:update' document.pk %}" class="btn btn-primary btn-sm">
       Edytuj metadane
