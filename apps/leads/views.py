@@ -22,6 +22,7 @@ from django.views.generic import (
 )
 
 from apps.accounts.models import UserProfile
+from apps.reports.models import ActivityLog
 
 from .forms import LeadForm
 from .models import Lead, WorkflowStage
@@ -169,6 +170,11 @@ class LeadCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.owner = self.request.user
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.UTWORZONO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s utworzyl lead: %s (id=%s)",
             self.request.user.username,
@@ -212,6 +218,11 @@ class LeadUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.ZAKTUALIZOWANO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s zaktualizowal lead: %s (id=%s)",
             self.request.user.username,
@@ -279,6 +290,11 @@ class LeadCloseView(LoginRequiredMixin, View):
         close_status = request.POST.get("close_status", "").strip()
         try:
             lead.close(close_status)
+            ActivityLog.log(
+                user=request.user,
+                action=ActivityLog.Action.ZAKTUALIZOWANO,
+                obj=lead,
+            )
             messages.success(
                 request,
                 'Lead "%s" zostal zamkniety ze statusem: %s.'

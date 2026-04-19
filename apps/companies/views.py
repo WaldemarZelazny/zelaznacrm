@@ -27,6 +27,7 @@ from django.views.generic import (
 )
 
 from apps.accounts.models import UserProfile
+from apps.reports.models import ActivityLog
 
 from .forms import CompanyForm
 from .models import Company
@@ -133,6 +134,11 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.owner = self.request.user
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.UTWORZONO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s utworzyl firme: %s (id=%s)",
             self.request.user.username,
@@ -177,6 +183,11 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.ZAKTUALIZOWANO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s zaktualizowal firme: %s (id=%s)",
             self.request.user.username,
@@ -491,6 +502,11 @@ class CompanyDeleteView(LoginRequiredMixin, DeleteView):
 
     def form_valid(self, form):
         company_name = self.object.name
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.USUNIETO,
+            obj=self.object,
+        )
         response = super().form_valid(form)
         logger.warning(
             "Uzytkownik %s usunał firme: %s",

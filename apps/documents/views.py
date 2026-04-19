@@ -25,6 +25,7 @@ from apps.accounts.models import UserProfile
 from apps.companies.models import Company
 from apps.deals.models import Deal
 from apps.leads.models import Lead
+from apps.reports.models import ActivityLog
 
 from .forms import DocumentForm
 from .models import Document
@@ -162,6 +163,11 @@ class DocumentCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.UTWORZONO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s wgral dokument: %s (id=%s)",
             self.request.user.username,

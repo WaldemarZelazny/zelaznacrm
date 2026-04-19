@@ -25,6 +25,7 @@ from apps.accounts.models import UserProfile
 from apps.companies.models import Company
 from apps.deals.models import Deal
 from apps.leads.models import Lead
+from apps.reports.models import ActivityLog
 
 from .forms import TaskForm
 from .models import Task
@@ -232,6 +233,11 @@ class TaskCreateView(LoginRequiredMixin, CreateView):
         if not form.instance.assigned_to:
             form.instance.assigned_to = self.request.user
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.UTWORZONO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s utworzyl zadanie: %s (id=%s)",
             self.request.user.username,
@@ -284,6 +290,11 @@ class TaskUpdateView(LoginRequiredMixin, UpdateView):
         ):
             form.instance.assigned_to = self._original_assigned_to
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.ZAKTUALIZOWANO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s zaktualizowal zadanie: %s (id=%s)",
             self.request.user.username,
@@ -349,6 +360,11 @@ class TaskCompleteView(LoginRequiredMixin, View):
             )
         try:
             task.complete()
+            ActivityLog.log(
+                user=request.user,
+                action=ActivityLog.Action.ZAKTUALIZOWANO,
+                obj=task,
+            )
             messages.success(
                 request,
                 'Zadanie "%s" zostalo oznaczone jako wykonane.' % task.title,

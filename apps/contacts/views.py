@@ -19,6 +19,7 @@ from django.views.generic import (
 
 from apps.accounts.models import UserProfile
 from apps.companies.models import Company
+from apps.reports.models import ActivityLog
 
 from .forms import ContactForm
 from .models import Contact
@@ -133,6 +134,11 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.owner = self.request.user
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.UTWORZONO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s utworzyl kontakt: %s (id=%s)",
             self.request.user.username,
@@ -176,6 +182,11 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.ZAKTUALIZOWANO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s zaktualizowal kontakt: %s (id=%s)",
             self.request.user.username,
@@ -214,6 +225,11 @@ class ContactDeleteView(LoginRequiredMixin, DeleteView):
 
     def form_valid(self, form):
         contact_name = self.object.full_name
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.USUNIETO,
+            obj=self.object,
+        )
         response = super().form_valid(form)
         logger.warning(
             "Uzytkownik %s usunál kontakt: %s",

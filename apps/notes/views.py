@@ -22,6 +22,7 @@ from apps.companies.models import Company
 from apps.contacts.models import Contact
 from apps.deals.models import Deal
 from apps.leads.models import Lead
+from apps.reports.models import ActivityLog
 
 from .forms import NoteForm
 from .models import Note
@@ -173,6 +174,11 @@ class NoteCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
         response = super().form_valid(form)
+        ActivityLog.log(
+            user=self.request.user,
+            action=ActivityLog.Action.UTWORZONO,
+            obj=self.object,
+        )
         logger.info(
             "Uzytkownik %s dodal notatke (id=%s)",
             self.request.user.username,
