@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import io
 import json
 import logging
 from urllib.parse import urlencode
@@ -14,7 +15,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -514,4 +515,88 @@ class CompanyDeleteView(LoginRequiredMixin, DeleteView):
             company_name,
         )
         messages.warning(self.request, 'Firma "%s" zostala usunieta.' % company_name)
+        return response
+
+
+class CompanyExportView(LoginRequiredMixin, View):
+    """Eksportuje liste firm do pliku XLSX (openpyxl).
+
+    ADMIN eksportuje wszystkie firmy.
+    HANDLOWIEC eksportuje tylko firmy, ktorych jest opiekunem.
+    GET /companies/export/xlsx/
+    """
+
+    def get(self, request, *args, **kwargs):
+        """Generuje plik XLSX i zwraca jako zalacznik do pobrania."""
+        from datetime import date
+
+        import openpyxl  # lazy — nie wymagane w kazdym srodowisku
+
+        qs = Company.objects.select_related("owner").order_by("name")
+        if not _is_admin(request.user):
+            qs = qs.filter(owner=request.user)
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Firmy"
+
+        headers = [
+            "ID",
+            "Nazwa",
+            "NIP",
+            "Branża",
+            "Miasto",
+            "Kod pocztowy",
+            "Adres",
+            "Telefon",
+            "E-mail",
+            "Strona WWW",
+            "Opiekun",
+            "Aktywna",
+            "Data dodania",
+        ]
+        ws.append(headers)
+
+        for company in qs:
+            ws.append(
+                [
+                    company.pk,
+                    company.name,
+                    company.nip or "",
+                    company.get_industry_display() if company.industry else "",
+                    company.city or "",
+                    company.postal_code or "",
+                    company.address or "",
+                    company.phone or "",
+                    company.email or "",
+                    company.website or "",
+                    (
+                        company.owner.get_full_name() or company.owner.username
+                        if company.owner
+                        else ""
+                    ),
+                    "Tak" if company.is_active else "Nie",
+                    (
+                        company.created_at.strftime("%Y-%m-%d")
+                        if company.created_at
+                        else ""
+                    ),
+                ]
+            )
+
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        filename = f"firmy_{date.today().isoformat()}.xlsx"
+        response = HttpResponse(
+            buffer.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        logger.info(
+            "Uzytkownik %s eksportowal firmy do XLSX (%d rekordow)",
+            request.user.username,
+            qs.count(),
+        )
         return response

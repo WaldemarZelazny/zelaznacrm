@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import io
 import logging
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet, Sum
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -296,3 +297,79 @@ class DealCancelView(LoginRequiredMixin, View):
         except ValueError as exc:
             messages.error(request, str(exc))
         return HttpResponseRedirect(reverse("deals:detail", kwargs={"pk": pk}))
+
+
+class DealExportView(LoginRequiredMixin, View):
+    """Eksportuje liste umow do pliku XLSX (openpyxl).
+
+    ADMIN eksportuje wszystkie umowy.
+    HANDLOWIEC eksportuje tylko swoje umowy.
+    GET /deals/export/xlsx/
+    """
+
+    def get(self, request, *args, **kwargs):
+        """Generuje plik XLSX i zwraca jako zalacznik do pobrania."""
+        from datetime import date
+
+        import openpyxl  # lazy
+
+        qs = Deal.objects.select_related("company", "owner", "lead").order_by(
+            "-created_at"
+        )
+        if not _is_admin(request.user):
+            qs = qs.filter(owner=request.user)
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Umowy"
+
+        headers = [
+            "ID",
+            "Tytuł",
+            "Firma",
+            "Lead",
+            "Opiekun",
+            "Status",
+            "Wartość (PLN)",
+            "Data zamknięcia",
+            "Data podpisania",
+            "Data utworzenia",
+        ]
+        ws.append(headers)
+
+        for deal in qs:
+            ws.append(
+                [
+                    deal.pk,
+                    deal.title,
+                    deal.company.name if deal.company else "",
+                    deal.lead.title if deal.lead else "",
+                    (
+                        deal.owner.get_full_name() or deal.owner.username
+                        if deal.owner
+                        else ""
+                    ),
+                    deal.get_status_display(),
+                    float(deal.value) if deal.value else 0,
+                    deal.close_date.strftime("%Y-%m-%d") if deal.close_date else "",
+                    deal.signed_at.strftime("%Y-%m-%d") if deal.signed_at else "",
+                    deal.created_at.strftime("%Y-%m-%d") if deal.created_at else "",
+                ]
+            )
+
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        filename = f"umowy_{date.today().isoformat()}.xlsx"
+        response = HttpResponse(
+            buffer.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        logger.info(
+            "Uzytkownik %s eksportowal umowy do XLSX (%d rekordow)",
+            request.user.username,
+            qs.count(),
+        )
+        return response

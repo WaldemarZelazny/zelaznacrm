@@ -16,4 +16,5 @@ urlpatterns = [
     path("<int:pk>/delete/", views.DealDeleteView.as_view(), name="delete"),
     path("<int:pk>/complete/", views.DealCompleteView.as_view(), name="complete"),
     path("<int:pk>/cancel/", views.DealCancelView.as_view(), name="cancel"),
+    path("export/xlsx/", views.DealExportView.as_view(), name="export_xlsx"),
 ]

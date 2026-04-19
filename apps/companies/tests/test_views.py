@@ -638,3 +638,85 @@ class NipSearchPostCeidgTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertGreaterEqual(mock_get.call_count, 2)
+
+
+# ---------------------------------------------------------------------------
+# CompanyExportView
+# ---------------------------------------------------------------------------
+
+
+class CompanyExportViewTest(TestCase):
+    """Testy eksportu firm do XLSX."""
+
+    def setUp(self) -> None:
+        self.admin = _make_user("exp_admin", role=UserProfile.Role.ADMIN)
+        self.handlowiec = _make_user("exp_hand")
+        self.other = _make_user("exp_other")
+        self.own = _make_company("Moja Firma", owner=self.handlowiec)
+        self.other_co = _make_company("Cudza Firma", owner=self.other)
+
+    def test_export_redirect_anonymous(self) -> None:
+        """Anonimowy uzytkownik jest przekierowywany do logowania."""
+        response = self.client.get(reverse("companies:export_xlsx"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+    def test_export_returns_200_for_logged_user(self) -> None:
+        """Zalogowany uzytkownik otrzymuje odpowiedz 200."""
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("companies:export_xlsx"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_export_content_type(self) -> None:
+        """Odpowiedz ma Content-Type xlsx."""
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("companies:export_xlsx"))
+        self.assertIn("spreadsheetml.sheet", response["Content-Type"])
+
+    def test_export_content_disposition_attachment(self) -> None:
+        """Odpowiedz zwraca zalacznik z rozszerzeniem .xlsx."""
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("companies:export_xlsx"))
+        self.assertIn("attachment", response["Content-Disposition"])
+        self.assertIn(".xlsx", response["Content-Disposition"])
+
+    def test_handlowiec_exports_only_own_companies(self) -> None:
+        """HANDLOWIEC eksportuje tylko swoje firmy (weryfikacja przez zawartosc XLSX)."""
+        import io as _io
+
+        import openpyxl
+
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("companies:export_xlsx"))
+        wb = openpyxl.load_workbook(_io.BytesIO(response.content))
+        ws = wb.active
+        names = [ws.cell(row=r, column=2).value for r in range(2, ws.max_row + 1)]
+        self.assertIn("Moja Firma", names)
+        self.assertNotIn("Cudza Firma", names)
+
+    def test_admin_exports_all_companies(self) -> None:
+        """ADMIN eksportuje wszystkie firmy."""
+        import io as _io
+
+        import openpyxl
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("companies:export_xlsx"))
+        wb = openpyxl.load_workbook(_io.BytesIO(response.content))
+        ws = wb.active
+        names = [ws.cell(row=r, column=2).value for r in range(2, ws.max_row + 1)]
+        self.assertIn("Moja Firma", names)
+        self.assertIn("Cudza Firma", names)
+
+    def test_export_has_header_row(self) -> None:
+        """Plik XLSX zawiera wiersz naglowkowy."""
+        import io as _io
+
+        import openpyxl
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("companies:export_xlsx"))
+        wb = openpyxl.load_workbook(_io.BytesIO(response.content))
+        ws = wb.active
+        self.assertEqual(ws.cell(row=1, column=1).value, "ID")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Nazwa")

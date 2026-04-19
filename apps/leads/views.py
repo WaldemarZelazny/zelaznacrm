@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import io
 import logging
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -303,3 +304,81 @@ class LeadCloseView(LoginRequiredMixin, View):
         except ValueError as exc:
             messages.error(request, str(exc))
         return HttpResponseRedirect(reverse("leads:detail", kwargs={"pk": pk}))
+
+
+class LeadExportView(LoginRequiredMixin, View):
+    """Eksportuje liste leadow do pliku XLSX (openpyxl).
+
+    ADMIN eksportuje wszystkie leady.
+    HANDLOWIEC eksportuje tylko swoje leady.
+    GET /leads/export/xlsx/
+    """
+
+    def get(self, request, *args, **kwargs):
+        """Generuje plik XLSX i zwraca jako zalacznik do pobrania."""
+        from datetime import date
+
+        import openpyxl  # lazy
+
+        qs = Lead.objects.select_related(
+            "company", "owner", "stage", "contact"
+        ).order_by("-created_at")
+        if not _is_admin(request.user):
+            qs = qs.filter(owner=request.user)
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Leady"
+
+        headers = [
+            "ID",
+            "Tytuł",
+            "Firma",
+            "Kontakt",
+            "Opiekun",
+            "Status",
+            "Źródło",
+            "Wartość (PLN)",
+            "Etap",
+            "Data utworzenia",
+            "Data zamknięcia",
+        ]
+        ws.append(headers)
+
+        for lead in qs:
+            ws.append(
+                [
+                    lead.pk,
+                    lead.title,
+                    lead.company.name if lead.company else "",
+                    str(lead.contact) if lead.contact else "",
+                    (
+                        lead.owner.get_full_name() or lead.owner.username
+                        if lead.owner
+                        else ""
+                    ),
+                    lead.get_status_display(),
+                    lead.get_source_display() if lead.source else "",
+                    float(lead.value) if lead.value else 0,
+                    str(lead.stage) if lead.stage else "",
+                    lead.created_at.strftime("%Y-%m-%d") if lead.created_at else "",
+                    lead.closed_at.strftime("%Y-%m-%d") if lead.closed_at else "",
+                ]
+            )
+
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        filename = f"leady_{date.today().isoformat()}.xlsx"
+        response = HttpResponse(
+            buffer.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        logger.info(
+            "Uzytkownik %s eksportowal leady do XLSX (%d rekordow)",
+            request.user.username,
+            qs.count(),
+        )
+        return response

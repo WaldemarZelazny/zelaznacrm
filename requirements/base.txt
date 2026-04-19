@@ -10,3 +10,4 @@ crispy-bootstrap5>=2024.2
 django-filter>=24.1
 django-guardian>=2.4.0
 requests>=2.31.0
+openpyxl>=3.1.2

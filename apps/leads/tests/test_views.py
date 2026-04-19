@@ -536,3 +536,91 @@ class LeadCloseViewTest(TestCase):
         self.assertRedirects(
             response, reverse("leads:detail", kwargs={"pk": self.lead.pk})
         )
+
+
+# ---------------------------------------------------------------------------
+# LeadExportView
+# ---------------------------------------------------------------------------
+
+
+class LeadExportViewTest(TestCase):
+    """Testy eksportu leadow do XLSX."""
+
+    def setUp(self) -> None:
+        self.admin = _make_user("lexp_admin", role=UserProfile.Role.ADMIN)
+        self.handlowiec = _make_user("lexp_hand")
+        self.other = _make_user("lexp_other")
+        self.company = _make_company("Exp Co", owner=self.handlowiec)
+        stage = _get_stage()
+        self.own_lead = Lead.objects.create(
+            title="Moj Lead", company=self.company, owner=self.handlowiec, stage=stage
+        )
+        self.other_lead = Lead.objects.create(
+            title="Cudzy Lead", company=self.company, owner=self.other, stage=stage
+        )
+
+    def test_export_redirect_anonymous(self) -> None:
+        """Anonimowy uzytkownik jest przekierowywany do logowania."""
+        response = self.client.get(reverse("leads:export_xlsx"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+    def test_export_returns_200_for_logged_user(self) -> None:
+        """Zalogowany uzytkownik otrzymuje odpowiedz 200."""
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("leads:export_xlsx"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_export_content_type(self) -> None:
+        """Odpowiedz ma Content-Type xlsx."""
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("leads:export_xlsx"))
+        self.assertIn("spreadsheetml.sheet", response["Content-Type"])
+
+    def test_export_content_disposition_attachment(self) -> None:
+        """Odpowiedz zwraca zalacznik z rozszerzeniem .xlsx."""
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("leads:export_xlsx"))
+        self.assertIn("attachment", response["Content-Disposition"])
+        self.assertIn(".xlsx", response["Content-Disposition"])
+
+    def test_handlowiec_exports_only_own_leads(self) -> None:
+        """HANDLOWIEC eksportuje tylko swoje leady."""
+        import io as _io
+
+        import openpyxl
+
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("leads:export_xlsx"))
+        wb = openpyxl.load_workbook(_io.BytesIO(response.content))
+        ws = wb.active
+        titles = [ws.cell(row=r, column=2).value for r in range(2, ws.max_row + 1)]
+        self.assertIn("Moj Lead", titles)
+        self.assertNotIn("Cudzy Lead", titles)
+
+    def test_admin_exports_all_leads(self) -> None:
+        """ADMIN eksportuje wszystkie leady."""
+        import io as _io
+
+        import openpyxl
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("leads:export_xlsx"))
+        wb = openpyxl.load_workbook(_io.BytesIO(response.content))
+        ws = wb.active
+        titles = [ws.cell(row=r, column=2).value for r in range(2, ws.max_row + 1)]
+        self.assertIn("Moj Lead", titles)
+        self.assertIn("Cudzy Lead", titles)
+
+    def test_export_has_header_row(self) -> None:
+        """Plik XLSX zawiera wiersz naglowkowy z polem ID i Tytul."""
+        import io as _io
+
+        import openpyxl
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("leads:export_xlsx"))
+        wb = openpyxl.load_workbook(_io.BytesIO(response.content))
+        ws = wb.active
+        self.assertEqual(ws.cell(row=1, column=1).value, "ID")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Tytuł")

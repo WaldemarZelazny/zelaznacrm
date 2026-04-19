@@ -16,4 +16,5 @@ urlpatterns = [
     path("<int:pk>/", views.CompanyDetailView.as_view(), name="detail"),
     path("<int:pk>/edit/", views.CompanyUpdateView.as_view(), name="update"),
     path("<int:pk>/delete/", views.CompanyDeleteView.as_view(), name="delete"),
+    path("export/xlsx/", views.CompanyExportView.as_view(), name="export_xlsx"),
 ]

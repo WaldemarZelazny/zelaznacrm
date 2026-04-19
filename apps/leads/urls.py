@@ -16,4 +16,5 @@ urlpatterns = [
     path("<int:pk>/edit/", views.LeadUpdateView.as_view(), name="update"),
     path("<int:pk>/delete/", views.LeadDeleteView.as_view(), name="delete"),
     path("<int:pk>/close/", views.LeadCloseView.as_view(), name="close"),
+    path("export/xlsx/", views.LeadExportView.as_view(), name="export_xlsx"),
 ]

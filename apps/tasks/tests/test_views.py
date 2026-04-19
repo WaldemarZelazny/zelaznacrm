@@ -577,3 +577,90 @@ class TaskCompleteAndCancelViewTest(TestCase):
         self.assertEqual(response.status_code, 302)
         task.refresh_from_db()
         self.assertEqual(task.status, Task.Status.WYKONANE)
+
+
+# ---------------------------------------------------------------------------
+# TaskExportView
+# ---------------------------------------------------------------------------
+
+
+class TaskExportViewTest(TestCase):
+    """Testy eksportu zadan do XLSX."""
+
+    def setUp(self) -> None:
+        self.admin = _make_user("texp_admin", role=UserProfile.Role.ADMIN)
+        self.handlowiec = _make_user("texp_hand")
+        self.other = _make_user("texp_other")
+        self.company = _make_company("Exp Co", owner=self.handlowiec)
+        self.own_task = _make_task(
+            "Moje Zadanie", assigned_to=self.handlowiec, company=self.company
+        )
+        self.other_task = _make_task(
+            "Cudze Zadanie", assigned_to=self.other, company=self.company
+        )
+
+    def test_export_redirect_anonymous(self) -> None:
+        """Anonimowy uzytkownik jest przekierowywany do logowania."""
+        response = self.client.get(reverse("tasks:export_xlsx"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+    def test_export_returns_200_for_logged_user(self) -> None:
+        """Zalogowany uzytkownik otrzymuje odpowiedz 200."""
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("tasks:export_xlsx"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_export_content_type(self) -> None:
+        """Odpowiedz ma Content-Type xlsx."""
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("tasks:export_xlsx"))
+        self.assertIn("spreadsheetml.sheet", response["Content-Type"])
+
+    def test_export_content_disposition_attachment(self) -> None:
+        """Odpowiedz zwraca zalacznik z rozszerzeniem .xlsx."""
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("tasks:export_xlsx"))
+        self.assertIn("attachment", response["Content-Disposition"])
+        self.assertIn(".xlsx", response["Content-Disposition"])
+
+    def test_handlowiec_exports_only_own_tasks(self) -> None:
+        """HANDLOWIEC eksportuje tylko swoje zadania."""
+        import io as _io
+
+        import openpyxl
+
+        self.client.force_login(self.handlowiec)
+        response = self.client.get(reverse("tasks:export_xlsx"))
+        wb = openpyxl.load_workbook(_io.BytesIO(response.content))
+        ws = wb.active
+        titles = [ws.cell(row=r, column=2).value for r in range(2, ws.max_row + 1)]
+        self.assertIn("Moje Zadanie", titles)
+        self.assertNotIn("Cudze Zadanie", titles)
+
+    def test_admin_exports_all_tasks(self) -> None:
+        """ADMIN eksportuje wszystkie zadania."""
+        import io as _io
+
+        import openpyxl
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("tasks:export_xlsx"))
+        wb = openpyxl.load_workbook(_io.BytesIO(response.content))
+        ws = wb.active
+        titles = [ws.cell(row=r, column=2).value for r in range(2, ws.max_row + 1)]
+        self.assertIn("Moje Zadanie", titles)
+        self.assertIn("Cudze Zadanie", titles)
+
+    def test_export_has_header_row(self) -> None:
+        """Plik XLSX zawiera wiersz naglowkowy z polem ID i Tytul."""
+        import io as _io
+
+        import openpyxl
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("tasks:export_xlsx"))
+        wb = openpyxl.load_workbook(_io.BytesIO(response.content))
+        ws = wb.active
+        self.assertEqual(ws.cell(row=1, column=1).value, "ID")
+        self.assertEqual(ws.cell(row=1, column=2).value, "Tytuł")

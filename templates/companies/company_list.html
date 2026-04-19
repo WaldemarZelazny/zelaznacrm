@@ -15,15 +15,27 @@
         {% if is_admin %}firm{% else %}Twoich firm{% endif %}
       </p>
     </div>
-    <a href="{% url 'companies:create' %}" class="btn btn-primary">
-      <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
-           viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-        <line x1="12" y1="5" x2="12" y2="19"/>
-        <line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      Dodaj firmę
-    </a>
+    <div class="d-flex gap-2">
+      <a href="{% url 'companies:export_xlsx' %}" class="btn btn-outline-success btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+          <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+          <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+        </svg>
+        Eksportuj do Excel
+      </a>
+      <a href="{% url 'companies:create' %}" class="btn btn-primary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Dodaj firmę
+      </a>
+    </div>
   </div>
 
   <!-- Panel filtrów -->

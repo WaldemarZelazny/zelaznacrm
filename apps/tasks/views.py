@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import io
 import logging
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -395,3 +396,87 @@ class TaskCancelView(LoginRequiredMixin, View):
         except ValueError as exc:
             messages.error(request, str(exc))
         return HttpResponseRedirect(reverse("tasks:detail", kwargs={"pk": pk}))
+
+
+class TaskExportView(LoginRequiredMixin, View):
+    """Eksportuje liste zadan do pliku XLSX (openpyxl).
+
+    ADMIN eksportuje wszystkie zadania.
+    HANDLOWIEC eksportuje tylko zadania przypisane do siebie.
+    GET /tasks/export/xlsx/
+    """
+
+    def get(self, request, *args, **kwargs):
+        """Generuje plik XLSX i zwraca jako zalacznik do pobrania."""
+        from datetime import date
+
+        import openpyxl  # lazy
+
+        qs = Task.objects.select_related(
+            "assigned_to", "created_by", "company", "lead", "deal"
+        ).order_by("due_date", "-priority")
+        if not _is_admin(request.user):
+            qs = qs.filter(assigned_to=request.user)
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Zadania"
+
+        headers = [
+            "ID",
+            "Tytuł",
+            "Typ",
+            "Priorytet",
+            "Status",
+            "Termin",
+            "Przypisany do",
+            "Firma",
+            "Lead",
+            "Umowa",
+            "Wykonano",
+            "Data utworzenia",
+        ]
+        ws.append(headers)
+
+        for task in qs:
+            ws.append(
+                [
+                    task.pk,
+                    task.title,
+                    task.get_task_type_display(),
+                    task.get_priority_display(),
+                    task.get_status_display(),
+                    task.due_date.strftime("%Y-%m-%d %H:%M") if task.due_date else "",
+                    (
+                        task.assigned_to.get_full_name() or task.assigned_to.username
+                        if task.assigned_to
+                        else ""
+                    ),
+                    task.company.name if task.company else "",
+                    task.lead.title if task.lead else "",
+                    task.deal.title if task.deal else "",
+                    (
+                        task.completed_at.strftime("%Y-%m-%d %H:%M")
+                        if task.completed_at
+                        else ""
+                    ),
+                    task.created_at.strftime("%Y-%m-%d") if task.created_at else "",
+                ]
+            )
+
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        filename = f"zadania_{date.today().isoformat()}.xlsx"
+        response = HttpResponse(
+            buffer.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        logger.info(
+            "Uzytkownik %s eksportowal zadania do XLSX (%d rekordow)",
+            request.user.username,
+            qs.count(),
+        )
+        return response
