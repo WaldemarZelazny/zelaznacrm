@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
+from django.http import HttpResponse
 from django.urls import reverse_lazy
 from django.views.generic import (
     CreateView,
@@ -171,7 +172,7 @@ class NoteCreateView(LoginRequiredMixin, CreateView):
                 pass
         return initial
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         form.instance.author = self.request.user
         response = super().form_valid(form)
         ActivityLog.log(
@@ -216,7 +217,7 @@ class NoteUpdateView(LoginRequiredMixin, UpdateView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         response = super().form_valid(form)
         logger.info(
             "Uzytkownik %s zaktualizowal notatke (id=%s)",
@@ -248,7 +249,7 @@ class NoteDeleteView(LoginRequiredMixin, DeleteView):
             raise PermissionDenied("Mozesz usuwac tylko notatki, ktore sam napisalec.")
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         note_pk = self.object.pk
         response = super().form_valid(form)
         logger.warning(

@@ -154,6 +154,10 @@ class Task(models.Model):
         verbose_name = _("zadanie")
         verbose_name_plural = _("zadania")
         ordering = ["due_date", "-priority"]
+        indexes = [
+            models.Index(fields=["status"], name="task_status_idx"),
+            models.Index(fields=["due_date"], name="task_due_date_idx"),
+        ]
 
     def __str__(self) -> str:
         """Zwraca tytul zadania z typem i terminem."""

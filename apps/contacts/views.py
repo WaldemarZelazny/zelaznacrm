@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
+from django.http import HttpResponse
 from django.urls import reverse_lazy
 from django.views.generic import (
     CreateView,
@@ -131,7 +132,7 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
                 pass
         return initial
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         form.instance.owner = self.request.user
         response = super().form_valid(form)
         ActivityLog.log(
@@ -180,7 +181,7 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         response = super().form_valid(form)
         ActivityLog.log(
             user=self.request.user,
@@ -223,7 +224,7 @@ class ContactDeleteView(LoginRequiredMixin, DeleteView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         contact_name = self.object.full_name
         ActivityLog.log(
             user=self.request.user,

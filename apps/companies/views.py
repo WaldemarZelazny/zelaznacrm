@@ -35,6 +35,8 @@ from .models import Company
 
 logger = logging.getLogger(__name__)
 
+_XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
 
 def _is_admin(user) -> bool:
     """Sprawdza czy uzytkownik ma role ADMIN."""
@@ -132,7 +134,7 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
                 initial[field] = val
         return initial
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         form.instance.owner = self.request.user
         response = super().form_valid(form)
         ActivityLog.log(
@@ -182,7 +184,7 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         response = super().form_valid(form)
         ActivityLog.log(
             user=self.request.user,
@@ -260,7 +262,8 @@ class NipLookupView(LoginRequiredMixin, View):
         if is_ajax:
             return JsonResponse(data)
 
-        # Redirect z danymi jako parametry GET — CompanyCreateView.get_initial() je odbierze
+        # Redirect z danymi jako parametry GET —
+        # CompanyCreateView.get_initial() je odbierze
         params = {"nip": nip}
         for field in ("name", "address", "city", "postal_code"):
             val = data.get(field, "")
@@ -360,12 +363,8 @@ class NipLookupView(LoginRequiredMixin, View):
             return JsonResponse({"error": "Błąd połączenia z serwisem MF."}, status=502)
 
         if resp.status_code == 400:
-            return JsonResponse(
-                {
-                    "error": "Nieprawidłowy NIP — sprawdź poprawność numeru (suma kontrolna)."
-                },
-                status=400,
-            )
+            msg = "Nieprawidłowy NIP — sprawdź poprawność numeru (suma kontrolna)."
+            return JsonResponse({"error": msg}, status=400)
         if resp.status_code == 404:
             return JsonResponse(
                 {"error": "Nie znaleziono firmy o podanym NIP."}, status=404
@@ -501,7 +500,7 @@ class CompanyDeleteView(LoginRequiredMixin, DeleteView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         company_name = self.object.name
         ActivityLog.log(
             user=self.request.user,
@@ -591,7 +590,7 @@ class CompanyExportView(LoginRequiredMixin, View):
         filename = f"firmy_{date.today().isoformat()}.xlsx"
         response = HttpResponse(
             buffer.read(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            content_type=_XLSX_CONTENT_TYPE,
         )
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         logger.info(

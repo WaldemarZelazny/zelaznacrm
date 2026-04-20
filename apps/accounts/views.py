@@ -10,6 +10,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views import View
@@ -180,7 +181,7 @@ class UserCreateView(LoginRequiredMixin, CreateView):
             raise PermissionDenied("Dostep tylko dla administratorow.")
         return super().dispatch(request, *args, **kwargs)
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         response = super().form_valid(form)
         profile = self.object.profile
         profile.role = form.cleaned_data.get("role", UserProfile.Role.HANDLOWIEC)
@@ -225,7 +226,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
         kwargs["is_admin"] = _is_admin(self.request.user)
         return kwargs
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         response = super().form_valid(form)
         profile = self.object.profile
         if _is_admin(self.request.user) and "role" in form.cleaned_data:

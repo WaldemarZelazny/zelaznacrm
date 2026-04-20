@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -83,6 +82,10 @@ class ActivityLog(models.Model):
         verbose_name = _("log aktywnosci")
         verbose_name_plural = _("logi aktywnosci")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["action"], name="activitylog_action_idx"),
+            models.Index(fields=["created_at"], name="activitylog_created_at_idx"),
+        ]
 
     def __str__(self) -> str:
         """Zwraca krotki opis zdarzenia: akcja, model i repr obiektu."""
@@ -96,11 +99,11 @@ class ActivityLog(models.Model):
     @classmethod
     def log(
         cls,
-        user: Optional[User],
+        user: User | None,
         action: str,
         obj: models.Model,
         description: str = "",
-        ip: Optional[str] = None,
+        ip: str | None = None,
     ) -> "ActivityLog":
         """Tworzy nowy wpis w logu aktywnosci.
 

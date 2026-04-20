@@ -33,6 +33,8 @@ from .models import Task
 
 logger = logging.getLogger(__name__)
 
+_XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
 # Kolory na kalendarzu FullCalendar per priorytet
 _PRIORITY_COLOR = {
     Task.Priority.NISKI: "#6c757d",
@@ -228,7 +230,7 @@ class TaskCreateView(LoginRequiredMixin, CreateView):
 
         return initial
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         form.instance.created_by = self.request.user
         # Jeśli nie przypisano do nikogo, przypisz do twórcy
         if not form.instance.assigned_to:
@@ -282,9 +284,9 @@ class TaskUpdateView(LoginRequiredMixin, UpdateView):
         self._original_assigned_to = obj.assigned_to
         return obj
 
-    def form_valid(self, form):
-        # Nie-admin nie może przypadkowo odznaczyć przypisania — zachowaj starą wartość.
-        # UWAGA: self.object.assigned_to jest już nadpisane przez _post_clean() formularza,
+    def form_valid(self, form) -> HttpResponse:
+        # Nie-admin nie może odznaczyć przypisania — zachowaj starą wartość.
+        # UWAGA: self.object.assigned_to jest już nadpisane przez _post_clean(),
         # dlatego używamy wartości zapamiętanej wcześniej w get_object().
         if not form.cleaned_data.get("assigned_to") and not _is_admin(
             self.request.user
@@ -332,7 +334,7 @@ class TaskDeleteView(LoginRequiredMixin, DeleteView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         task_title = self.object.title
         response = super().form_valid(form)
         logger.warning(
@@ -471,7 +473,7 @@ class TaskExportView(LoginRequiredMixin, View):
         filename = f"zadania_{date.today().isoformat()}.xlsx"
         response = HttpResponse(
             buffer.read(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            content_type=_XLSX_CONTENT_TYPE,
         )
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         logger.info(

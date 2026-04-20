@@ -30,6 +30,8 @@ from .models import Deal
 
 logger = logging.getLogger(__name__)
 
+_XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
 
 def _is_admin(user) -> bool:
     """Sprawdza czy uzytkownik ma role ADMIN."""
@@ -136,7 +138,7 @@ class DealCreateView(LoginRequiredMixin, CreateView):
                 pass
         return initial
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         form.instance.owner = self.request.user
         response = super().form_valid(form)
         ActivityLog.log(
@@ -185,7 +187,7 @@ class DealUpdateView(LoginRequiredMixin, UpdateView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         response = super().form_valid(form)
         ActivityLog.log(
             user=self.request.user,
@@ -228,7 +230,7 @@ class DealDeleteView(LoginRequiredMixin, DeleteView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         deal_title = self.object.title
         response = super().form_valid(form)
         logger.warning(
@@ -364,7 +366,7 @@ class DealExportView(LoginRequiredMixin, View):
         filename = f"umowy_{date.today().isoformat()}.xlsx"
         response = HttpResponse(
             buffer.read(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            content_type=_XLSX_CONTENT_TYPE,
         )
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         logger.info(

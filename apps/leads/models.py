@@ -178,6 +178,10 @@ class Lead(models.Model):
         verbose_name = _("lead")
         verbose_name_plural = _("leady")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status"], name="lead_status_idx"),
+            models.Index(fields=["closed_at"], name="lead_closed_at_idx"),
+        ]
 
     def __str__(self) -> str:
         """Zwraca tytuł leada i nazwę firmy."""

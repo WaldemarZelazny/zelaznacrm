@@ -110,6 +110,9 @@ class Deal(models.Model):
         verbose_name = _("umowa")
         verbose_name_plural = _("umowy")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status"], name="deal_status_idx"),
+        ]
 
     def __str__(self) -> str:
         """Zwraca tytuł umowy i nazwę firmy."""

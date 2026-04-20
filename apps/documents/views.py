@@ -161,7 +161,7 @@ class DocumentCreateView(LoginRequiredMixin, CreateView):
                 pass
         return initial
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         form.instance.created_by = self.request.user
         response = super().form_valid(form)
         ActivityLog.log(
@@ -210,7 +210,7 @@ class DocumentUpdateView(LoginRequiredMixin, UpdateView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         response = super().form_valid(form)
         logger.info(
             "Uzytkownik %s zaktualizowal dokument: %s (id=%s)",
@@ -248,7 +248,7 @@ class DocumentDeleteView(LoginRequiredMixin, DeleteView):
             )
         return obj
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         doc_title = self.object.title
         response = super().form_valid(form)
         logger.warning(

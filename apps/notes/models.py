@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Union
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -20,7 +19,7 @@ logger = logging.getLogger(__name__)
 _SHORT_CONTENT_LIMIT = 100
 
 # Typ zwracany przez related_object
-RelatedObject = Union[Deal, Lead, Company, Contact, None]
+RelatedObject = Deal | Lead | Company | Contact | None
 
 
 class Note(models.Model):

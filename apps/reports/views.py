@@ -44,6 +44,7 @@ class ReportsDashboardView(LoginRequiredMixin, TemplateView):
     template_name = "reports/reports_dashboard.html"
 
     def dispatch(self, request, *args, **kwargs):
+        """Blokuje dostep dla nie-adminow przed obsługa zadania."""
         if request.user.is_authenticated and not _is_admin(request.user):
             logger.warning(
                 "Odmowa dostepu do ReportsDashboard dla uzytkownika: %s",
@@ -53,6 +54,7 @@ class ReportsDashboardView(LoginRequiredMixin, TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs) -> dict:
+        """Buduje dane KPI i serie dla wykresow Chart.js."""
         ctx = super().get_context_data(**kwargs)
         logger.debug("ReportsDashboardView: budowanie danych KPI")
 
@@ -142,6 +144,7 @@ class ActivityLogListView(LoginRequiredMixin, ListView):
     paginate_by = 50
 
     def dispatch(self, request, *args, **kwargs):
+        """Blokuje dostep dla nie-adminow przed obsługa zadania."""
         if request.user.is_authenticated and not _is_admin(request.user):
             logger.warning(
                 "Odmowa dostepu do ActivityLog dla uzytkownika: %s",
@@ -165,6 +168,7 @@ class ActivityLogListView(LoginRequiredMixin, ListView):
         return qs
 
     def get_context_data(self, **kwargs) -> dict:
+        """Dodaje wartosci aktywnych filtrow i opcje akcji do kontekstu."""
         ctx = super().get_context_data(**kwargs)
         ctx["filter_action"] = self.request.GET.get("action", "")
         ctx["filter_model"] = self.request.GET.get("model_name", "")
@@ -185,6 +189,7 @@ class SalesReportView(LoginRequiredMixin, TemplateView):
     template_name = "reports/sales_report.html"
 
     def dispatch(self, request, *args, **kwargs):
+        """Blokuje dostep dla nie-adminow przed obsługa zadania."""
         if request.user.is_authenticated and not _is_admin(request.user):
             logger.warning(
                 "Odmowa dostepu do SalesReport dla uzytkownika: %s",
@@ -194,6 +199,7 @@ class SalesReportView(LoginRequiredMixin, TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs) -> dict:
+        """Buduje raport per handlowiec z konwersja i wartoscia umow."""
         ctx = super().get_context_data(**kwargs)
         logger.debug("SalesReportView: budowanie raportu sprzedazowego")
 
