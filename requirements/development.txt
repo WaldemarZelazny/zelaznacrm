@@ -22,6 +22,11 @@ coverage>=7.4.3
 playwright>=1.44.0
 beautifulsoup4>=4.12.3
 
+# Dokumentacja
+sphinx>=9.0.0
+sphinx-rtd-theme>=3.0.0
+sphinxcontrib-django>=2.5
+
 # Narzędzia
 ipython>=8.23.0
 rich>=13.7.1
