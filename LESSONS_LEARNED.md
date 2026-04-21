@@ -25,6 +25,22 @@ było cicho pomijane, w Django 6.0 rzuca wyjątek.
 **Rozwiązanie:** Zawsze sprawdzaj {% if obiekt %} przed dostępem
 do jego atrybutów w szablonach.
 
+**Wzorzec poprawny:**
+```
+{% if obiekt %}
+  {{ obiekt.pole }}
+{% else %}
+  —
+{% endif %}
+```
+
+**Wzorzec BŁĘDNY (nie używać):**
+```
+{{ obiekt.pole|default:"—" }}  ← rzuca wyjątek gdy obiekt=None
+```
+
+**Pliki naprawione:** contacts, companies, deals, leads detail/list views
+
 ## 5. Sygnał post_save kontra UserProfileInline w Admin
 **Problem:** IntegrityError przy tworzeniu użytkownika przez Admin —
 sygnał tworzył profil automatycznie, a inline próbował go utworzyć drugi raz.
