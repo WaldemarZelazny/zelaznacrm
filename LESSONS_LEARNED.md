@@ -86,5 +86,23 @@ sprawdź w oknie incognito (Ctrl+Shift+N) przed debugowaniem kodu.
 | PDF | `.claude/skills/anthropics-pdf.md` | Generowanie dokumentów PDF (WeasyPrint) |
 | XLSX | `.claude/skills/anthropics-xlsx.md` | Eksport danych do Excela (openpyxl) |
 
+## 12. Skill anthropics-docx nie istnieje — użyj python-docx bezpośrednio
+
+**Problem:** Skill `.claude/skills/anthropics-docx.md` opisany w CONTEXT.md
+nie istnieje jako gotowy plik do pobrania.
+
+**Rozwiązanie:** Generuj dokumenty Word bezpośrednio przez python-docx:
+```python
+from docx import Document
+doc = Document()
+doc.add_heading('Tytuł', 0)
+doc.save('plik.docx')
+```
+
+**Instalacja:** `pip install python-docx` (już w requirements/base.txt)
+
+**Przykład użycia w projekcie:** `USER_MANUAL.docx` — instrukcja obsługi
+wygenerowana automatycznie z `USER_MANUAL.md` przez python-docx.
+
 **Jak wywołać skill:**
   "Użyj skilla garrytan-qa" lub "/skill garrytan-qa"
