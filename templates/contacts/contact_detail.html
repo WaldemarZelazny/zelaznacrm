@@ -78,7 +78,7 @@
 
             <dt class="col-5 text-muted fw-normal small">Opiekun</dt>
             <dd class="col-7">
-              {{ contact.owner.get_full_name|default:contact.owner.username|default:"—" }}
+              {% if contact.owner %}{{ contact.owner.get_full_name|default:contact.owner.username }}{% else %}—{% endif %}
             </dd>
 
             <dt class="col-5 text-muted fw-normal small">Dodano</dt>
@@ -113,7 +113,7 @@
             <div class="list-group-item">
               <div class="d-flex justify-content-between mb-1">
                 <small class="text-muted">
-                  {{ note.author.get_full_name|default:note.author.username|default:"System" }}
+                  {% if note.author %}{{ note.author.get_full_name|default:note.author.username }}{% else %}System{% endif %}
                 </small>
                 <small class="text-muted">{{ note.created_at|date:"d.m.Y H:i" }}</small>
               </div>

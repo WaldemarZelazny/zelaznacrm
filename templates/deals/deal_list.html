@@ -114,7 +114,7 @@
               {% endif %}
             </td>
             <td class="text-muted small">
-              {{ deal.owner.get_full_name|default:deal.owner.username|default:"—" }}
+              {% if deal.owner %}{{ deal.owner.get_full_name|default:deal.owner.username }}{% else %}—{% endif %}
             </td>
             <td>
               <div class="dropdown">

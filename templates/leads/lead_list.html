@@ -140,7 +140,7 @@
             </td>
             <td class="text-end fw-semibold">{{ lead.value_display }}</td>
             <td class="text-muted small">
-              {{ lead.owner.get_full_name|default:lead.owner.username|default:"—" }}
+              {% if lead.owner %}{{ lead.owner.get_full_name|default:lead.owner.username }}{% else %}—{% endif %}
             </td>
             <td class="text-muted small">{{ lead.get_source_display }}</td>
             <td>
