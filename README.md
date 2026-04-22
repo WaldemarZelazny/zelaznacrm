@@ -193,6 +193,16 @@ Szczegółowe rozwiązania problemów znajdziesz w pliku [LESSONS_LEARNED.md](LE
 
 ---
 
+## Diagram ERD
+
+Diagram relacji między modelami (Entity-Relationship Diagram):
+
+![ERD](ERD.png)
+
+Pełny diagram w formacie Mermaid: [ERD.md](ERD.md)
+
+---
+
 ## Dokumentacja projektu
 
 | Plik | Opis |
@@ -201,6 +211,9 @@ Szczegółowe rozwiązania problemów znajdziesz w pliku [LESSONS_LEARNED.md](LE
 | [CONTEXT.md](CONTEXT.md) | Kontekst projektu, stack, plan realizacji |
 | [LESSONS_LEARNED.md](LESSONS_LEARNED.md) | Rozwiązane problemy i wnioski z realizacji |
 | [CHANGELOG.md](CHANGELOG.md) | Historia zmian per faza |
+| [ERD.md](ERD.md) | Diagram ERD — modele i relacje (Mermaid) |
+| [USER_MANUAL.md](USER_MANUAL.md) | Instrukcja obsługi użytkownika |
+| [DIPLOMA_REQUIREMENTS.md](DIPLOMA_REQUIREMENTS.md) | Raport spełnienia wymagań pracy dyplomowej |
 
 ---
 
