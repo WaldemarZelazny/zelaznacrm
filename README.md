@@ -241,6 +241,7 @@ Pełny diagram w formacie Mermaid: [ERD.md](ERD.md)
 | [ERD.md](ERD.md) | Diagram ERD — modele i relacje (Mermaid) |
 | [USER_MANUAL.md](USER_MANUAL.md) | Instrukcja obsługi użytkownika |
 | [DIPLOMA_REQUIREMENTS.md](DIPLOMA_REQUIREMENTS.md) | Raport spełnienia wymagań pracy dyplomowej |
+| [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) | Kompletne podsumowanie projektu — wnioski, wzorce, szablon startowy |
 
 ---
 
