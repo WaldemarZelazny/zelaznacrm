@@ -105,6 +105,16 @@ python manage.py runserver
 
 Aplikacja dostępna pod adresem: **http://127.0.0.1:8000/**
 
+#### Szybki start (Windows)
+
+Uruchom skrypt `start_zelaznaCRM.bat` — aktywuje virtualenv, otwiera przeglądarkę i startuje serwer.
+
+Aby utworzyć skrót na pulpicie z ikoną aplikacji:
+
+```bat
+cscript create_shortcut.vbs
+```
+
 ---
 
 ## Dane testowe
