@@ -165,7 +165,7 @@ pytest --cov=apps --cov-report=html
 # Raport HTML dostępny w htmlcov/index.html
 ```
 
-Aktualny wynik: **480 testów, 100% passing**.
+Aktualny wynik: **664 testy, 100% passing**.
 
 ---
 
@@ -184,6 +184,23 @@ SECRET_KEY=twoj-tajny-klucz
 DEBUG=True
 DATABASE_URL=sqlite:///db.sqlite3
 ```
+
+---
+
+## Statystyki projektu
+
+| Kategoria | Pliki | Linie kodu |
+|-----------|------:|----------:|
+| Python — kod aplikacji | 93 | ~8 500 |
+| Python — testy | 36 | ~7 579 |
+| HTML szablony | 44 | ~5 636 |
+| Dokumentacja (MD/RST) | 140+ | ~3 634 |
+| **Kod własny łącznie** | **313+** | **~25 349** |
+
+- ✅ 664 testy automatyczne (100% passing)
+- ✅ 46% kodu to testy — wysoka kultura testowania
+- ✅ 9 aplikacji Django, 11 modeli
+- ✅ 54 widoki CBV/FBV z `LoginRequiredMixin`
 
 ---
 
